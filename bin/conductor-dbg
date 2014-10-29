@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+
+# Copyright (c) 2012-2012 Fidelity Investments.
+
+gemfile = File.expand_path("../../Gemfile", __FILE__)
+
+if File.exists?(gemfile)
+  ENV["BUNDLE_GEMFILE"] = gemfile
+  require "rubygems"
+  require "bundler/setup"
+end
+
+$:.unshift(File.expand_path("../../lib", __FILE__))
+require "click2compute_api"
+require "irb"
+require "irb/completion"
+require "optparse"
+require "find"
+
+config_file = nil
+
+opts_parser = OptionParser.new do |opts|
+  opts.on("-c", "--config FILE") { |file| config_file = file }
+end
+
+opts_parser.parse!
+
+unless config_file
+  puts opts_parser
+  exit(1)
+end
+
+@config = YAML.load_file(config_file)
+
+module ConsoleHelpers
+
+  def client
+    @client ||= Click2Compute::API::Client.new(@config)
+  end
+  
+  def reload
+    Find.find(File.expand_path("../../lib", __FILE__)) do |f|
+        load f if File.extname(f) == ".rb" && !File.dirname(f).end_with?("/resources")
+    end
+  end
+
+end
+
+c2c_config = OpenStruct.new(:logger => Logger.new(STDOUT))
+Click2Compute::API::Config.configure(c2c_config)
+
+include ConsoleHelpers
+
+#begin
+#  require 'ruby-debug'
+#  puts "=> Debugger enabled"
+#rescue LoadError
+#  puts "=> ruby-debug not found, debugger disabled"
+#end
+
+IRB.start

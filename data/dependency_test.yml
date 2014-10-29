@@ -1,0 +1,22 @@
+---
+name: data
+nodes:
+- name: A
+  depends_on:
+  - B
+  - C
+  - D
+- name: B
+  depends_on:
+  - E
+  - F
+- name: C
+  depends_on:
+  - F
+  - G
+- name: D
+  depends_on:
+  - C
+- name: E
+- name: F
+- name: G
