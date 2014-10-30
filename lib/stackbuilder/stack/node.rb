@@ -1,8 +1,8 @@
 # Copyright (c) 2014 Mevan Samaratunga
 
-include Click2Compute::Common::Helpers
+include StackBuilder::Common::Helpers
 
-module Click2Compute::Orchestration
+module Knife::StackBuilder::Stack
 
     class Node
         
@@ -15,7 +15,7 @@ module Click2Compute::Orchestration
         
         def initialize(node_config, system_config, id, nodes)
             
-            @@logger ||= Click2Compute::API::Config.logger
+            @@logger ||= Knife::StackBuilder::Config.logger
             @cookbook_repo_path ||= nil
             
             @id ||= id

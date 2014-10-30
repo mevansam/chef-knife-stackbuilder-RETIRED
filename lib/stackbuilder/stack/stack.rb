@@ -1,10 +1,10 @@
 # Copyright (c) 2014 Mevan Samaratunga
 
-include Knife::StackBuilder::Helpers
+include StackBuilder::Common::Helpers
 
-module Knife::StackBuilder
+module Knife::StackBuilder::Stack
 
-    class System
+    class Stack
         
         attr_reader :id
         attr_reader :name
@@ -12,8 +12,8 @@ module Knife::StackBuilder
         
         def initialize(connection, system_pattern, id = nil, overrides = nil)
 
-            Click2Compute::API::Config.set_silent
-            @logger = Click2Compute::API::Config.logger
+            Knife::StackBuilder::Config.set_silent
+            @logger = Knife::StackBuilder::Config.logger
             
             cookbook_repo_path = File.dirname(File.expand_path(system_pattern));
 
@@ -71,12 +71,12 @@ module Knife::StackBuilder
                     end
                     
                     if n.has_key?("vm")
-                        @nodes[r] = Click2Compute::Orchestration::VMNode.new(n, system, @id, @nodes, cookbook_repo_path, vms)
+                        @nodes[r] = Knife::StackBuilder::VMNode.new(n, system, @id, @nodes, cookbook_repo_path, vms)
                     elsif n.has_key?("target_vm")
-                        @nodes[r] = Click2Compute::Orchestration::ChefNode.new(n, system, @id, @nodes, cookbook_repo_path, vms)
+                        @nodes[r] = Knife::StackBuilder::ChefNode.new(n, system, @id, @nodes, cookbook_repo_path, vms)
                     else
                         @logger.debug("Creating generic no-op node: #{n}")
-                        @nodes[r] = Click2Compute::Orchestration::Node.new(n, system, @id, @nodes)
+                        @nodes[r] = Knife::StackBuilder::Node.new(n, system, @id, @nodes)
                     end
                     
                 end

@@ -1,6 +1,6 @@
 # Copyright (c) 2014 Mevan Samaratunga
 
-module Knife::StackBuilder
+module StackBuilder::Common
 
     module Helpers
         

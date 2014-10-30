@@ -2,15 +2,16 @@
 *.rbc
 
 .config
+.project
+InstalledFiles
 
-/.idea/
-/coverage/
-/InstalledFiles
-/pkg/
-/spec/reports/
-/test/tmp/
-/test/version_tmp/
-/tmp/
+.idea/
+coverage/
+reports/
+spec/reports/
+spec/coverage/
+pkg/
+tmp/
 
 ## Specific to RubyMotion:
 .dat*

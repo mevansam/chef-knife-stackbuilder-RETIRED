@@ -1,20 +1,26 @@
 # Copyright (c) 2014 Mevan Samaratunga
 
-source "https://rubygems.org"
+source 'https://rubygems.org'
 gemspec
 
-gem "rake"
+gem 'rake'
 
-group :development do
-    gem "guard"
-    gem "guard-bundler"
-    gem "guard-rspec"
-    gem "ruby_gntp"
-
-    gem 'debugger2'
-end
+gem 'chef', '>= 0.11'
+gem 'chef-zero'
+gem 'yajl-ruby'
+gem 'highline'
 
 group :development, :test do
-    gem "ci_reporter"
-    gem "rspec"
+
+    gem 'ci_reporter'
+    gem 'simplecov'
+    gem 'simplecov-rcov'
+
+    gem 'rb-fsevent', :require => false if RUBY_PLATFORM =~ /darwin/i
+    gem 'guard-rspec'
+    gem 'guard-livereload'
+end
+
+group :development do
+    gem 'byebug'
 end

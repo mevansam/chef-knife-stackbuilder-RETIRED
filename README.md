@@ -1,50 +1,65 @@
 # Knife Conductor plugin
 
-TODO: ...
-
 ## Usage
 
 ```
-knife initialize stack repo
+knife stack initialize repo
 
-    --path
+  Initializes or validates an existing stack repo. The stack repo should contain the 
+  following folders along with a Berksfile.
+  
+  * environments
+  * stacks
+  * secrets
+  * databags
+  * cookbooks
+  * roles
 
-      Path to create and initialize the stack chef repository. If the repository already exists then any it will be validated.
+  --path
 
-    --cert_path | --certs
+    Path to create and initialize the stack chef repository. If the repository already 
+    exists then any it will be validated. If the provided path begins with git:, http: 
+    or https:, it will be assumed to be a git repo. A branch/label may be specified
+    by preceding it with a : after the path.
+    
+    i.e. http://github.com/mevansam/mystack:tag1
 
-      If "--cert_path" is provided then it should point to a directory with a folder for each server domain name containing the server cert files. If instead "--certs" are provided then
+  --cert_path | --certs
 
-    --
+    If "--cert_path" is specified then it should point to a directory with a folder for 
+    each server domain name containing that server's certificate files. 
+    
+    If instead "--certs" are specified then it should provide a comma separated list of
+    server domain names for which self-signed certificates will be generated.
+
+  --envs
+    
+    Comma separated list of environments to generate along with encryption keys for each.
 ```
 
 ```
-knife upload stack cookbook[s]
+knife stack upload cookbook[s]
 ```
 
 ```
-knife upload stack environment[s]
+knife stack upload environment[s]
 ```
 
 ```
-knife upload stack role[s]
+knife stack upload role[s]
 ```
 
 ```
-knife upload stack data bag[s]
+knife stack upload data bag[s]
 ```
 
 ```
-knife sync stack
+knife stack upload repo
 ```
 
-## Design
-
-TODO: ...
-
-## Extending
-
-TODO: ...
+```
+knife stack build
+```
 
 ## Contributing
 

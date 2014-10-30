@@ -1,6 +1,6 @@
 # Copyright (c) 2014 Mevan Samaratunga
 
-module Knife::StackBuilder
+module StackBuilder::Common
     
     class Config
 
@@ -22,7 +22,7 @@ module Knife::StackBuilder
             # Create cache folder
             config.enable_caching = false if config.enable_caching.nil?
             if config.enable_caching
-                config.cachedir = File.expand_path(File.join(Dir.home, ".conductor_cache")) if config.cachedir.nil?
+                config.cachedir = File.expand_path(File.join(Dir.home, ".c2c_cache")) if config.cachedir.nil?
                 begin
                     FileUtils.mkdir_p(config.cachedir) if !Dir.exists?(config.cachedir)
                 rescue
