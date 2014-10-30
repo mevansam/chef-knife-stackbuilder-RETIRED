@@ -4,7 +4,39 @@ TODO: ...
 
 ## Usage
 
-TODO: ...
+```
+knife initialize stack repo
+
+    --path
+
+      Path to create and initialize the stack chef repository. If the repository already exists then any it will be validated.
+
+    --cert_path | --certs
+
+      If "--cert_path" is provided then it should point to a directory with a folder for each server domain name containing the server cert files. If instead "--certs" are provided then
+
+    --
+```
+
+```
+knife upload stack cookbook[s]
+```
+
+```
+knife upload stack environment[s]
+```
+
+```
+knife upload stack role[s]
+```
+
+```
+knife upload stack data bag[s]
+```
+
+```
+knife sync stack
+```
 
 ## Design
 
