@@ -8,12 +8,12 @@ knife stack initialize repo
   Initializes or validates an existing stack repo. The stack repo should contain the 
   following folders along with a Berksfile.
   
+  * cookbooks
   * environments
-  * stacks
   * secrets
   * databags
-  * cookbooks
   * roles
+  * stacks
 
   --path
 
