@@ -12,13 +12,23 @@ class Chef
             deps do
             end
 
-            banner "knife stack .."
+            banner "knife stack upload role (options)"
 
             def run
             end
         end
 
         class StackUploadRoles < Knife
+
+            include Knife::StackBuilderBase
+
+            deps do
+            end
+
+            banner "knife stack upload roles (options)"
+
+            def run
+            end
         end
 
     end

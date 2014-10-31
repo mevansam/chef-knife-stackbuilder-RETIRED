@@ -12,7 +12,7 @@ class Chef
             deps do
             end
 
-            banner "knife stack .."
+            banner 'knife stack update (options)'
 
             def run
             end

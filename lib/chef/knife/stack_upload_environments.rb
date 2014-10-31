@@ -12,13 +12,23 @@ class Chef
             deps do
             end
 
-            banner "knife stack .."
+            banner "knife stack upload environment (options)"
 
             def run
             end
         end
 
         class StackUploadEnvironments < Knife
+
+            include Knife::StackBuilderBase
+
+            deps do
+            end
+
+            banner "knife stack upload environments (options)"
+
+            def run
+            end
         end
 
     end

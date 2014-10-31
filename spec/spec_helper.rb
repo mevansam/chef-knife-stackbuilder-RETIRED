@@ -11,9 +11,11 @@ class SimpleCov::Formatter::MergedFormatter
 end
 
 SimpleCov.formatter = SimpleCov::Formatter::MergedFormatter
-SimpleCov.start
+SimpleCov.start do
+    coverage_dir File.expand_path('../../coverage', __FILE__)
+end
 
-ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../Gemfile', __FILE__)
+ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../../Gemfile', __FILE__)
 
 require 'rubygems'
 require 'bundler'
@@ -21,5 +23,16 @@ Bundler.setup(:default, :test)
 
 require 'rspec'
 require 'chef/config'
+require 'chef_zero/server'
 
 require 'stackbuilder'
+
+server = ChefZero::Server.new(port: 9999, debug: true)
+server.start_background
+
+logger = Chef::Log.logger
+logger.level = Logger::DEBUG
+
+config = OpenStruct.new(:logger => logger, :enable_caching => false, :timeouts => { :CACHE_TIMEOUT => 1800 } )
+StackBuilder::Common::Config.configure(config)
+

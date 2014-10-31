@@ -3,6 +3,7 @@
 module StackBuilder::Common
 
     class StackBuilderError < StandardError; end
+    class InvalidArgs < StackBuilderError; end
     class NotImplemented < StackBuilderError; end
     class NotSupported < StackBuilderError; end
 

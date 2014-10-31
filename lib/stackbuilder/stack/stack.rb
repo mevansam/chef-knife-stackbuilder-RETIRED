@@ -2,7 +2,7 @@
 
 include StackBuilder::Common::Helpers
 
-module Knife::StackBuilder::Stack
+module StackBuilder::Stack
 
     class Stack
         
@@ -12,8 +12,8 @@ module Knife::StackBuilder::Stack
         
         def initialize(connection, system_pattern, id = nil, overrides = nil)
 
-            Knife::StackBuilder::Config.set_silent
-            @logger = Knife::StackBuilder::Config.logger
+            StackBuilder::Common::Config.set_silent
+            @logger = StackBuilder::Common::Config.logger
             
             cookbook_repo_path = File.dirname(File.expand_path(system_pattern));
 

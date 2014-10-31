@@ -2,7 +2,7 @@
 
 include StackBuilder::Common::Helpers
 
-module Knife::StackBuilder::Stack
+module StackBuilder::Stack
 
     class Node
         
@@ -15,7 +15,7 @@ module Knife::StackBuilder::Stack
         
         def initialize(node_config, system_config, id, nodes)
             
-            @@logger ||= Knife::StackBuilder::Config.logger
+            @@logger ||= StackBuilder::Config.logger
             @cookbook_repo_path ||= nil
             
             @id ||= id

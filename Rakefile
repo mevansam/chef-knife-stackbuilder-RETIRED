@@ -31,7 +31,7 @@ if defined?(RSpec)
     namespace :spec do
         desc "Run Unit Tests"
             rspec_task = RSpec::Core::RakeTask.new(:unit) do |t|
-            t.pattern = "spec/unit/**/*_spec.rb"
+            t.pattern = "spec/**/*_spec.rb"
             t.rspec_opts = %w(--format progress --colour)
         end
     end

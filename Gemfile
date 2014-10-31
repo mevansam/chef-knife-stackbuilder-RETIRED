@@ -7,6 +7,7 @@ gem 'rake'
 
 gem 'chef', '>= 0.11'
 gem 'chef-zero'
+gem 'berkshelf'
 gem 'yajl-ruby'
 gem 'highline'
 

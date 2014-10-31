@@ -6,6 +6,5 @@ class Chef
         module StackBuilderBase
 
         end
-
     end
 end
