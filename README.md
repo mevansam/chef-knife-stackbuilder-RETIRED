@@ -35,6 +35,12 @@ knife stack initialize repo
   --envs
     
     Comma separated list of environments to generate along with encryption keys for each.
+    
+  --cookbooks
+  
+    A comma separated list of cookbooks and their versions to be added to the Berksfile.
+    
+    i.e. "mysql:=5.6.1, wordpress:~> 2.3.0"
 ```
 
 ```
