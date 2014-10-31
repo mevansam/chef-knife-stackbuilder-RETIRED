@@ -1,4 +1,4 @@
-# Knife Conductor plugin
+# Knife StackBuilder plugin
 
 ## Usage
 
