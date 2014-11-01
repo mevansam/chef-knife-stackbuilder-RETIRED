@@ -20,7 +20,3 @@ group :development, :test do
     gem 'guard-rspec'
     gem 'guard-livereload'
 end
-
-group :development do
-    gem 'byebug'
-end

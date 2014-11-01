@@ -136,6 +136,20 @@ module StackBuilder::Chef
 
         def upload_cookbooks(environment = nil)
 
+            berksfile_path = "#{@repo_path}/Berksfile"
+            debug_flag = (@logger.debug? ? ' --debug' : '')
+
+            # Need to invoke Berkshelf from the shell as directly invoking it causes
+            # cookbook validation to throw an exception when 'Berksfile.upload' is
+            # called.
+            #
+            # TBD: More research needs to be done as direct invocation is preferable
+
+            cmd = ""
+            cmd += "export BERKSHELF_CHEF_CONFIG=#{ENV['BERKSHELF_CHEF_CONFIG']}; " if ENV.has_key?('BERKSHELF_CHEF_CONFIG')
+            cmd += "berks install#{debug_flag} --berksfile=#{berksfile_path}; "
+            cmd += "berks upload#{debug_flag} --berksfile=#{berksfile_path} --no-freeze; "
+            system(cmd)
         end
 
         def upload_roles(environment = nil)

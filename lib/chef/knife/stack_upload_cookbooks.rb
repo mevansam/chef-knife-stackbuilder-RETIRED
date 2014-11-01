@@ -12,7 +12,7 @@ class Chef
             deps do
             end
 
-            banner 'knife upload cookbook (options)'
+            banner 'knife stack upload cookbook (options)'
 
             def run
             end
@@ -25,7 +25,7 @@ class Chef
             deps do
             end
 
-            banner 'knife upload cookbooks (options)'
+            banner 'knife stack upload cookbooks (options)'
 
             def run
             end

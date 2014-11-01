@@ -8,4 +8,5 @@ module StackBuilder::Common
     class NotSupported < StackBuilderError; end
 
     class KnifeError < StackBuilderError; end
+    class BerksError < StackBuilderError; end
 end

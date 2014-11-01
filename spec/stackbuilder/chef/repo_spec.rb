@@ -38,7 +38,7 @@ describe StackBuilder::Chef do
             @repo_path,
             nil,
             'DEV,TEST,PROD',
-            'mysql:=5.6.1, wordpress:~> 2.3.0' )
+            'mysql:=5.6.1, wordpress:=2.3.0' )
 
         # Copy the test data into the repo
         system("cp -fr #{@test_data_path}/test_repo/* #{@repo_path}")
@@ -124,5 +124,20 @@ describe StackBuilder::Chef do
         expect(value_map["dbA-TEST:key2"]).to eq("TEST_AAAA2222_override")
         expect(value_map["dbA-TEST:key4"]).to eq("TEST_AAAA4444")
         expect(value_map["dbB-TEST:key1"]).to eq("TEST_BBBB1111")
+    end
+
+    it "should upload cookbooks from the repo's Berksfile" do
+
+        repo = StackBuilder::Chef::Repo.new(@repo_path)
+        repo.upload_cookbooks
+
+        knife_cmd = Chef::Knife::CookbookList.new
+        cookbook_list = run_knife(knife_cmd).split
+
+        cookbooks = { }
+        (0..cookbook_list.size).step(2) { |i| cookbooks[cookbook_list[i]] = cookbook_list[i+1] }
+
+        expect(cookbooks['mysql']).to eq('5.6.1')
+        expect(cookbooks['wordpress']).to eq('2.3.0')
     end
 end
