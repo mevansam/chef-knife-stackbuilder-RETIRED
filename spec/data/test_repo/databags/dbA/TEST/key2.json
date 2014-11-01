@@ -1,0 +1,4 @@
+{
+    "id": "key2",
+    "value": "#{env['VALUE_A2']}_override"
+}

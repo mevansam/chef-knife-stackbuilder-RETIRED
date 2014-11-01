@@ -1,0 +1,9 @@
+---
+# Externalized environment configuration for Chef 'TEST' environment.
+DOMAIN: knife-stackbuilder-test.org
+
+VALUE_A1: TEST_AAAA1111
+VALUE_A2: TEST_AAAA2222
+VALUE_A3: TEST_AAAA3333
+VALUE_A4: TEST_AAAA4444
+VALUE_B1: TEST_BBBB1111

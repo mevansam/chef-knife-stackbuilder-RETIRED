@@ -3,17 +3,7 @@
 module StackBuilder::Common
 
     module Helpers
-        
-        TIMEOUT = 180 # seconds
 
-        #
-        # Raises ConductorError exception
-        #
-        def conductor_error(message)
-            @logger.error(message) if @logger
-            raise Knife::Conductor::ConductorError, message
-        end
-        
         #
         # Returns whether platform is a nix OS
         #
@@ -88,7 +78,30 @@ module StackBuilder::Common
                 end 
             end
         end
-        
+
+        #
+        # Evaluates map values against the
+        # given map of environment variables
+        #
+        def evalMapValues(map, env)
+
+            map.each_key do |k|
+
+                v = map[k]
+
+                if v.is_a?(String)
+                    map[k] = eval("\"#{v}\"")
+
+                elsif v.is_a?(Array)
+                    map[k] =  v.map { |vv| eval("\"#{vv}\"") }
+
+                elsif v.is_a?(Hash)
+                    evalMapValues(v, env)
+
+                end
+            end
+        end
+
         #
         # Prints a 2-d array within a table formatted to terminal size
         #
@@ -221,7 +234,19 @@ module StackBuilder::Common
             printf border1 if border1
 
         end
- 
+
+        def run_knife(knife_cmd)
+
+            error = StringIO.new
+            output = StringIO.new
+
+            knife_cmd.ui = Chef::Knife::UI.new(output, error, STDIN, {})
+            knife_cmd.run
+
+            raise KnifeError, error.string if error.size>0
+            output.string
+        end
+
     end
 
 end

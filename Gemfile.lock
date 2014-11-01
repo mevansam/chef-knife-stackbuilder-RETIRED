@@ -212,7 +212,6 @@ GEM
       buff-extensions (~> 1.0)
       hashie (>= 2.0.2, < 3.0.0)
     wmi-lite (1.0.0)
-    yajl-ruby (1.2.1)
 
 PLATFORMS
   ruby
@@ -231,4 +230,3 @@ DEPENDENCIES
   rb-fsevent
   simplecov
   simplecov-rcov
-  yajl-ruby

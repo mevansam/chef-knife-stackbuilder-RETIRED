@@ -1,0 +1,21 @@
+name "<%= @environment %>"
+description "Chef '<%= @environment %>' environment."
+
+env = YAML.load_file(File.expand_path('../../etc/<%= @environment %>.yml', __FILE__))
+
+override_attributes(
+
+    # Add attributes here as ruby map
+    #
+    # "attr" => {
+    #     "key" => ..
+    #     ...
+    # }
+    # ...
+    #
+    # Use this ruby template to load externalized variables from a yaml file
+
+    'attr' => {
+        'key' => "#{env['key']}"
+    }
+)

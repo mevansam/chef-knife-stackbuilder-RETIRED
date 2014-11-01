@@ -1,0 +1,9 @@
+---
+# Externalized environment configuration for Chef 'DEV' environment.
+DOMAIN: knife-stackbuilder-dev.org
+
+VALUE_A1: DEV_AAAA1111
+VALUE_A2: DEV_AAAA2222
+VALUE_A3: DEV_AAAA3333
+VALUE_A4: DEV_AAAA4444
+VALUE_B1: DEV_BBBB1111

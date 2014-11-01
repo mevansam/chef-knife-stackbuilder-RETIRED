@@ -1,0 +1,4 @@
+{
+    "id": "key1",
+    "value": "#{env['VALUE_B1']}"
+}

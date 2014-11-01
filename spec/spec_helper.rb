@@ -22,17 +22,20 @@ require 'bundler'
 Bundler.setup(:default, :test)
 
 require 'rspec'
-require 'chef/config'
 require 'chef_zero/server'
 
 require 'stackbuilder'
+
+require 'chef/knife/environment_show'
+require 'chef/knife/data_bag_show'
 
 server = ChefZero::Server.new(port: 9999, debug: true)
 server.start_background
 
 logger = Chef::Log.logger
-logger.level = Logger::DEBUG
+logger.level = Logger::ERROR
+
+Chef::Config.from_file(File.expand_path('../data/chef-zero_knife.rb', __FILE__))
 
 config = OpenStruct.new(:logger => logger, :enable_caching => false, :timeouts => { :CACHE_TIMEOUT => 1800 } )
 StackBuilder::Common::Config.configure(config)
-

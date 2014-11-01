@@ -1,0 +1,41 @@
+---
+# Stack
+name: Stack2
+environment: DEV
+
+stack:
+- node: server1
+  depends_on:
+  type: type1
+  run_list:
+  host:
+    name: host1
+    domain: $DOMAIN
+    ip:
+    knife:
+      plugin:
+      args:
+
+- node: server2
+  depends_on: server1
+  type: type1
+  run_list:
+  host:
+    name: host1
+    domain: $DOMAIN
+    ip:
+    knife:
+      plugin:
+      args:
+
+- node: server2
+  depends_on: server1
+  type: type2
+  run_list:
+  host:
+    name: host1
+    domain: $DOMAIN
+    ip:
+    knife:
+      plugin:
+      args:

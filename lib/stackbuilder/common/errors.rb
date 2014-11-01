@@ -7,4 +7,5 @@ module StackBuilder::Common
     class NotImplemented < StackBuilderError; end
     class NotSupported < StackBuilderError; end
 
+    class KnifeError < StackBuilderError; end
 end
