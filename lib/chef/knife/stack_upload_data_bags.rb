@@ -9,10 +9,15 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            deps do
-            end
+            banner "knife stack upload data bag REPO_PATH (options)"
 
-            banner "knife stack upload data bag (options)"
+            option :envs,
+               :long => "--env ENVIRONMENT",
+               :description => "Environment to upload/update"
+
+            option :data_bag,
+               :long => "--data_bag NAME",
+               :description => "The data bag to upload/update"
 
             def run
             end
@@ -25,7 +30,7 @@ class Chef
             deps do
             end
 
-            banner "knife stack upload data bags (options)"
+            banner "knife stack upload data bags REPO_PATH (options)"
 
             def run
             end

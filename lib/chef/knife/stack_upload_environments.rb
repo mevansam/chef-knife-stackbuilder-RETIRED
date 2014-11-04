@@ -9,10 +9,11 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            deps do
-            end
+            banner "knife stack upload environment REPO_PATH (options)"
 
-            banner "knife stack upload environment (options)"
+            option :envs,
+               :long => "--env ENVIRONMENT",
+               :description => "Environment to upload/update"
 
             def run
             end
@@ -22,10 +23,7 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            deps do
-            end
-
-            banner "knife stack upload environments (options)"
+            banner "knife stack upload environments REPO_PATH (options)"
 
             def run
             end

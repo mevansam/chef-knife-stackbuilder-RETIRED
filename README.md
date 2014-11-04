@@ -34,7 +34,7 @@ knife stack initialize repo
 
   --envs
     
-    Comma separated list of environments to generate along with encryption keys for each.
+    Comma separated list of environments to generate.
     
   --cookbooks
   

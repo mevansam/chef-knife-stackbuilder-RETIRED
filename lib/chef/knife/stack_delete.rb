@@ -12,7 +12,7 @@ class Chef
             deps do
             end
 
-            banner 'knife stack delete (options)'
+            banner 'knife stack delete REPO_PATH (options)'
 
             def run
             end

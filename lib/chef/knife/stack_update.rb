@@ -12,7 +12,7 @@ class Chef
             deps do
             end
 
-            banner 'knife stack update (options)'
+            banner 'knife stack update REPO_PATH (options)'
 
             def run
             end

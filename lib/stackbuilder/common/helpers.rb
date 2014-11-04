@@ -83,7 +83,7 @@ module StackBuilder::Common
         # Evaluates map values against the
         # given map of environment variables
         #
-        def evalMapValues(map, env)
+        def eval_map_values(map, env)
 
             map.each_key do |k|
 
@@ -96,7 +96,7 @@ module StackBuilder::Common
                     map[k] =  v.map { |vv| eval("\"#{vv}\"") }
 
                 elsif v.is_a?(Hash)
-                    evalMapValues(v, env)
+                    eval_map_values(v, env)
 
                 end
             end

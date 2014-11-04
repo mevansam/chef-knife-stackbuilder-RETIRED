@@ -9,10 +9,11 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            deps do
-            end
+            banner "knife stack upload role REPO_PATH (options)"
 
-            banner "knife stack upload role (options)"
+            option :cookbook,
+               :long => "--role NAME",
+               :description => "The role upload/update"
 
             def run
             end
@@ -22,10 +23,7 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            deps do
-            end
-
-            banner "knife stack upload roles (options)"
+            banner "knife stack upload roles REPO_PATH (options)"
 
             def run
             end

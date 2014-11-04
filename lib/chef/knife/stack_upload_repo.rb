@@ -9,10 +9,7 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            deps do
-            end
-
-            banner "knife stack upload repo (options)"
+            banner "knife stack upload repo REPO_PATH (options)"
 
             def run
             end

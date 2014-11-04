@@ -36,7 +36,7 @@ describe StackBuilder::Chef do
 
         repo = StackBuilder::Chef::Repo.new(
             @repo_path,
-            nil,
+            "wpweb.stackbuilder.org,wpdb.stackbuilder.org",
             'DEV,TEST,PROD',
             'mysql:=5.6.1, wordpress:=2.3.0' )
 
@@ -51,9 +51,15 @@ describe StackBuilder::Chef do
             .to match_array([ 'DEV', 'TEST', 'PROD' ])
         expect(Dir["#{@repo_path}/stacks/**/*.yml"].map { |f| f[/\/(\w+).yml$/, 1] } )
             .to match_array([ 'Stack1', 'Stack2', 'Stack3' ])
+
+        expect(File.exist?("#{@repo_path}/.certs/cacert.pem")).to be true
+        [ 'wpweb.stackbuilder.org', 'wpdb.stackbuilder.org' ].each do |server|
+            expect(File.exist?("#{@repo_path}/.certs/#{server}/key.pem")).to be true
+            expect(File.exist?("#{@repo_path}/.certs/#{server}/cert.pem")).to be true
+        end
     end
 
-    it "should load an existing repositories environments" do
+    it "should load an existing repository's environments" do
 
         expect {
 
@@ -139,5 +145,31 @@ describe StackBuilder::Chef do
 
         expect(cookbooks['mysql']).to eq('5.6.1')
         expect(cookbooks['wordpress']).to eq('2.3.0')
+    end
+
+    it "should upload the repository's roles to chef" do
+
+        repo = StackBuilder::Chef::Repo.new(@repo_path)
+
+        ENV['ENV_KEY1'] = "env_value1"
+        ENV['ENV_KEY2'] = "env_value2"
+
+        repo.upload_roles
+
+        knife_cmd = Chef::Knife::RoleList.new
+        role_list = run_knife(knife_cmd).split
+
+        role_env_values = { }
+
+        role_list.each do |role|
+
+            knife_cmd = Chef::Knife::RoleShow.new
+            knife_cmd.name_args = [ role ]
+            role_attribs = YAML.load(run_knife(knife_cmd))
+            role_env_values[role] = role_attribs['override_attributes']['env_value']
+        end
+
+        expect(role_env_values['wordpress_web']).to eq(ENV['ENV_KEY1'])
+        expect(role_env_values['wordpress_db']).to eq(ENV['ENV_KEY2'])
     end
 end

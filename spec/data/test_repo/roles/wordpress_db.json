@@ -1,0 +1,16 @@
+{
+    "name": "wordpress_db",
+    "description": "Wordpress MySql database server",
+    "json_class": "Chef::Role",
+    "chef_type": "role",
+    "default_attributes": {
+    },
+    "override_attributes": {
+        "env_value": "#{env['ENV_KEY2']}"
+    },
+    "run_list": [
+        "recipe[mysql]"
+    ],
+    "env_run_lists": {
+    }
+}
