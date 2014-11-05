@@ -5,27 +5,19 @@ require 'chef/knife/stackbuilder_base'
 class Chef
     class Knife
 
-        class StackUploadRole < Knife
-
-            include Knife::StackBuilderBase
-
-            banner "knife stack upload role REPO_PATH (options)"
-
-            option :cookbook,
-               :long => "--role NAME",
-               :description => "The role upload/update"
-
-            def run
-            end
-        end
-
         class StackUploadRoles < Knife
 
             include Knife::StackBuilderBase
 
             banner "knife stack upload roles REPO_PATH (options)"
 
+            option :role,
+               :long => "--role NAME",
+               :description => "The role upload/update"
+
             def run
+                repo = StackBuilder::Chef::Repo.new(get_repo_path(name_args))
+                repo.upload_roles(config[:role])
             end
         end
 

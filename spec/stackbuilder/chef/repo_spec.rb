@@ -92,7 +92,33 @@ describe StackBuilder::Chef do
         expect(env_data['TEST']['override_attributes']['attribB']['key1']).to eq('TEST_BBBB1111')
     end
 
-    it "should load an existing repositories databags" do
+    it "should load an existing repository's certificates as data-bags" do
+
+        repo = StackBuilder::Chef::Repo.new(@repo_path)
+        repo.upload_certificates
+
+        cacert = IO.read("#{@repo_path}/.certs/cacert.pem")
+
+        [ 'DEV', 'TEST', 'PROD' ].each do |env_name|
+
+            data_bag_name = 'certificates-' + env_name
+
+            knife_cmd = Chef::Knife::DataBagShow.new
+            knife_cmd.name_args = [ data_bag_name ]
+            data_bag_items = run_knife(knife_cmd).split
+
+            data_bag_items.each do |data_bag_item|
+
+                server_certs = Chef::EncryptedDataBagItem.load(data_bag_name, data_bag_item, repo.get_secret(env_name))
+
+                expect(server_certs['cacert']).to eq(cacert)
+                expect(server_certs['cert']).to eq(IO.read("#{@repo_path}/.certs/#{data_bag_item}/cert.pem"))
+                expect(server_certs['key']).to eq(IO.read("#{@repo_path}/.certs/#{data_bag_item}/key.pem"))
+            end
+        end
+    end
+
+    it "should load an existing repository's data-bags" do
 
         repo = StackBuilder::Chef::Repo.new(@repo_path)
         repo.upload_databags
@@ -104,21 +130,24 @@ describe StackBuilder::Chef do
         value_map = { }
         data_bag_list.each do |data_bag_name|
 
-            env_name = data_bag_name[/-(\w+)$/, 1]
+            unless data_bag_name.start_with?('certificates-')
 
-            knife_cmd = Chef::Knife::DataBagShow.new
-            knife_cmd.name_args = [ data_bag_name ]
-            data_bag_items = run_knife(knife_cmd).split
-
-            data_bag_items.each do |data_bag_item|
+                env_name = data_bag_name[/-(\w+)$/, 1]
 
                 knife_cmd = Chef::Knife::DataBagShow.new
-                knife_cmd.name_args = [ data_bag_name, data_bag_item ]
-                knife_cmd.config[:secret] = repo.get_secret(env_name)
-                data_bag_item_value = YAML.load(run_knife(knife_cmd))
-                value = data_bag_item_value["value"]
+                knife_cmd.name_args = [ data_bag_name ]
+                data_bag_items = run_knife(knife_cmd).split
 
-                value_map["#{data_bag_name}:#{data_bag_item}"] = value
+                data_bag_items.each do |data_bag_item|
+
+                    knife_cmd = Chef::Knife::DataBagShow.new
+                    knife_cmd.name_args = [ data_bag_name, data_bag_item ]
+                    knife_cmd.config[:secret] = repo.get_secret(env_name)
+                    data_bag_item_value = YAML.load(run_knife(knife_cmd))
+                    value = data_bag_item_value["value"]
+
+                    value_map["#{data_bag_name}:#{data_bag_item}"] = value
+                end
             end
         end
 

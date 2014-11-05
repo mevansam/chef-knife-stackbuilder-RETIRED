@@ -15,11 +15,12 @@ class Chef
                 :long => "--cert_path CERT_PATH",
                 :description => "Path containing folders with server certificates. Each folder " +
                     "within this path should be named after the server for which the certs are " +
-                    "meant for"
+                    "meant post-fixed by _{ENV_NAME}. If name is not post-fixed then the cert " +
+                    "will be uploaded to all environments"
 
             option :certs,
                 :long => "--certs SERVER_NAMES",
-                :description => "Comman separated list of server names for which self-signed " +
+                :description => "Comma separated list of server names for which self-signed " +
                     "certificates will be generated."
 
             option :envs,
@@ -32,14 +33,7 @@ class Chef
                     "added to the Berksfile i.e. \"mysql:=5.6.1, wordpress:~> 2.3.0\""
 
             def run
-                unless name_args.size == 1
-                    puts "You need specify the path of the repo to create!"
-                    show_usage
-                    exit 1
-                end
-
-                repo_path = name_args.first
-
+                repo_path = get_repo_path(name_args)
                 cert_path = config[:cert_path]
                 certs = config[:certs]
 

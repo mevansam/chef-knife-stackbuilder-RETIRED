@@ -109,7 +109,48 @@ module StackBuilder::Chef
             end
         end
 
-        def upload_databags(environment = nil)
+        def upload_certificates(server = nil, environment = nil)
+
+            knife_cmd = Chef::Knife::DataBagList.new
+            data_bag_list = run_knife(knife_cmd).split
+
+            # Create environment specific data bags to hold certificates
+            environments.each do |env_name|
+
+                data_bag_env = 'certificates-' + env_name
+                unless data_bag_list.include?(data_bag_env)
+                    knife_cmd = Chef::Knife::DataBagCreate.new
+                    knife_cmd.name_args = data_bag_env
+                    run_knife(knife_cmd)
+                end
+            end
+
+            Dir["#{@repo_path}/.certs/*"].each do |server_cert_dir|
+
+                s = server_cert_dir.split('/').last
+                unless s=="cacert.pem"
+
+                    server_env_name = s[/.*_(\w+)$/, 1]
+                    server_name = server_env_name.nil? ? s : s[/(.*)_\w+$/, 1]
+
+                    if server.nil? || server==server_name
+
+                        if server_env_name.nil?
+
+                            environments = (environment.nil? ? @environments : [ environment ])
+                            environments.each do |env_name|
+                                upload_certificate(server_cert_dir, server_name, env_name)
+                            end
+
+                        elsif environment.nil? || environment==server_env_name
+                            upload_certificate(server_cert_dir, server_name, server_env_name)
+                        end
+                    end
+                end
+            end
+        end
+
+        def upload_databags(environment = nil, data_bag = nil)
 
             environments = (environment.nil? ? @environments : [ environment ])
 
@@ -119,24 +160,27 @@ module StackBuilder::Chef
             Dir["#{@repo_path}/databags/*"].each do |data_bag_dir|
 
                 data_bag_name = data_bag_dir[/\/(\w+)$/, 1]
-                environments.each do |env_name|
+                if data_bag.nil? || data_bag==data_bag_name
 
-                    data_bag = data_bag_name + '-' + env_name
-                    unless data_bag_list.include?(data_bag)
-                        knife_cmd = Chef::Knife::DataBagCreate.new
-                        knife_cmd.name_args = data_bag
-                        run_knife(knife_cmd)
+                    environments.each do |env_name|
+
+                        data_bag_env = data_bag_name + '-' + env_name
+                        unless data_bag_list.include?(data_bag_env)
+                            knife_cmd = Chef::Knife::DataBagCreate.new
+                            knife_cmd.name_args = data_bag_env
+                            run_knife(knife_cmd)
+                        end
+
+                        env_vars = YAML.load_file("#{@repo_path}/etc/#{env_name}.yml")
+                        merge_maps(env_vars, ENV)
+
+                        secret = get_secret(env_name)
+
+                        upload_data_bag_items(secret, data_bag_dir, data_bag_env, env_vars)
+
+                        env_item_dir = data_bag_dir + '/' + env_name
+                        upload_data_bag_items(secret, env_item_dir, data_bag_env, env_vars) if Dir.exist?(env_item_dir)
                     end
-
-                    env_vars = YAML.load_file("#{@repo_path}/etc/#{env_name}.yml")
-                    merge_maps(env_vars, ENV)
-
-                    secret = get_secret(env_name)
-
-                    upload_data_bag_items(secret, data_bag_dir, data_bag, env_vars)
-
-                    env_item_dir = data_bag_dir + '/' + env_name
-                    upload_data_bag_items(secret, env_item_dir, data_bag, env_vars) if Dir.exist?(env_item_dir)
                 end
             end
         end
@@ -222,8 +266,8 @@ module StackBuilder::Chef
                     server_dir = "#{repo_cert_dir}/#{server}"
                     FileUtils.mkdir_p("#{server_dir}")
 
-                    File.open("#{server_dir}/key.pem", 'w+') { |f| f.write(server_key.to_pem) }
                     File.open("#{server_dir}/cert.pem", 'w+') { |f| f.write(server_cert.to_pem) }
+                    File.open("#{server_dir}/key.pem", 'w+') { |f| f.write(server_key.to_pem) }
                 end
             end
         end
@@ -298,17 +342,42 @@ module StackBuilder::Chef
             cert
         end
 
+        def upload_certificate(server_cert_dir, server_name, server_env_name)
+
+            data_bag_name = 'certificates-' + server_env_name
+
+            data_bag_item = {
+                'id' => server_name,
+                'cacert' => IO.read(server_cert_dir + "/../cacert.pem"),
+                'cert' => IO.read(server_cert_dir + "/cert.pem"),
+                'key' => IO.read(server_cert_dir + "/key.pem") }
+
+            tmpfile = "#{Dir.tmpdir}/#{server_name}.json"
+            File.open("#{tmpfile}", 'w+') { |f| f.write(data_bag_item.to_json) }
+
+            knife_cmd = Chef::Knife::DataBagFromFile.new
+            knife_cmd.name_args = [ data_bag_name, tmpfile ]
+            knife_cmd.config[:secret] = get_secret(server_env_name)
+            run_knife(knife_cmd)
+
+            File.delete(tmpfile)
+
+        rescue Exception => msg
+            File.delete(tmpfile) unless tmpfile.nil?
+            @logger.error(msg)
+        end
+
         def upload_data_bag_items(secret, path, data_bag_name, env_vars)
 
             tmpfile = nil
 
             Dir["#{path}/*.json"].each do |data_bag_file|
 
-                data_bag_items = eval_map_values(JSON.load(File.new(data_bag_file, 'r')), env_vars)
+                data_bag_item = eval_map_values(JSON.load(File.new(data_bag_file, 'r')), env_vars)
 
                 data_bag_item_name = data_bag_file[/\/(\w+).json$/, 1]
                 tmpfile = "#{Dir.tmpdir}/#{data_bag_item_name}.json"
-                File.open("#{tmpfile}", 'w+') { |f| f.write(data_bag_items.to_json) }
+                File.open("#{tmpfile}", 'w+') { |f| f.write(data_bag_item.to_json) }
 
                 knife_cmd = Chef::Knife::DataBagFromFile.new
                 knife_cmd.name_args = [ data_bag_name, tmpfile ]

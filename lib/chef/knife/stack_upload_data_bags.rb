@@ -5,13 +5,13 @@ require 'chef/knife/stackbuilder_base'
 class Chef
     class Knife
 
-        class StackUploadDataBag < Knife
+        class StackUploadDataBags < Knife
 
             include Knife::StackBuilderBase
 
-            banner "knife stack upload data bag REPO_PATH (options)"
+            banner "knife stack upload data bags REPO_PATH (options)"
 
-            option :envs,
+            option :env,
                :long => "--env ENVIRONMENT",
                :description => "Environment to upload/update"
 
@@ -20,19 +20,8 @@ class Chef
                :description => "The data bag to upload/update"
 
             def run
-            end
-        end
-
-        class StackUploadDataBags < Knife
-
-            include Knife::StackBuilderBase
-
-            deps do
-            end
-
-            banner "knife stack upload data bags REPO_PATH (options)"
-
-            def run
+                repo = StackBuilder::Chef::Repo.new(get_repo_path(name_args))
+                repo.upload_databags(config[:env], config[:data_bag])
             end
         end
 
