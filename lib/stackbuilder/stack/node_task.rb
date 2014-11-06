@@ -4,7 +4,7 @@ include StackBuilder::Common::Helpers
 
 module StackBuilder::Stack
 
-    class Node
+    class NodeTask
         
         attr_reader :name
         attr_accessor :scale
@@ -13,19 +13,16 @@ module StackBuilder::Stack
         attr_reader :parent_nodes
         attr_reader :child_nodes
         
-        def initialize(node_config, system_config, id, nodes)
+        def initialize(node_config, id)
             
-            @@logger ||= StackBuilder::Config.logger
-            @cookbook_repo_path ||= nil
-            
-            @id ||= id
-            @nodes ||= nodes
+            @logger = StackBuilder::Config.logger
+
+            @id = id
             @parent_nodes = [ ]
             @child_nodes = [ ]
             @counter = 0
             
             @name = node_config["name"]
-            @firecall_ticket = system_config["firecall_ticket"] if system_config.has_key?("firecall_ticket")
             @on_events = (node_config.has_key?("on_events") ? node_config["on_events"] : [ ])
             
             @sync = (node_config.has_key?("sync") ? node_config["sync"] : "no")
@@ -33,7 +30,7 @@ module StackBuilder::Stack
             
             raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if @scale < 1
 
-            @attributes = { }
+            @attributes = node_config["attributes"]
             merge_maps(@attributes, node_config["attributes"]) if node_config.has_key?("attributes") && !node_config["attributes"].nil?
             merge_maps(@attributes, system_config["attributes"]) if system_config.has_key?("attributes") && !system_config["attributes"].nil?
 
@@ -47,8 +44,9 @@ module StackBuilder::Stack
             @reset = true
         end
         
-        def validate_target
-            
+        def validate_target(nodes)
+
+            @nodes = nodes
             unless @target.nil?
                 
                 if @nodes.has_key?(@target)
@@ -59,14 +57,14 @@ module StackBuilder::Stack
                     @target.parent_nodes << self
                     self.child_nodes << @target
                 else
-                    @@logger.warn("Target node with name \"#{@target}\" was not " \
+                    @logger.warn("Target node with name \"#{@target}\" was not " \
                         "found for node: #{self}.") unless @nodes.has_key?(@target)
                 end
             end
         end
         
         def get_current_scale
-            return @scale
+            @scale
         end
         
         def update_scale(scale)
@@ -74,15 +72,15 @@ module StackBuilder::Stack
         end
         
         def get_resource_sync(index)
-            return nil
+            nil
         end
         
         def get_resource(index)
-            return nil
+            nil
         end
         
         def get_node_attributes
-            return [ ]
+            [ ]
         end
         
         def parse_attributes(attributes, index)
@@ -90,7 +88,7 @@ module StackBuilder::Stack
             results = { }
             attributes.each_pair do |k, v|
                 
-                @@logger.debug("Evaluating #{k} = #{v}")
+                @logger.debug("Evaluating #{k} = #{v}")
                 
                 if v.is_a?(Hash)
                     results[k] = parse_attributes(v, index)
@@ -108,9 +106,9 @@ module StackBuilder::Stack
                     
                     l = lookup_keys.shift
                     node = @nodes[l]
-                    if !node.nil?
+                    unless node.nil?
                         
-                        node_attributes = node.get_node_attributes()
+                        node_attributes = node.get_node_attributes
                         unless node_attributes.nil? || node_attributes.empty?
                             
                             indexes = [ ]
@@ -169,15 +167,14 @@ module StackBuilder::Stack
                     results[k] = v
                 end
                 
-                @@logger.debug("Evaluated #{k} = #{results[k]}")
+                @logger.debug("Evaluated #{k} = #{results[k]}")
             end
             
-            return results
+            results
         end
                 
         def init_dependency_count
             @counter = child_nodes.size
-            return @counter
         end
         
         def dec_dependency_count
@@ -187,13 +184,13 @@ module StackBuilder::Stack
             }
         end
         
-        def prepare(connection, events)
+        def prepare(events)
             
             threads = [ ]
             
             if @target.nil?
 
-                current_scale = self.get_current_scale()
+                current_scale = self.get_current_scale
                 if current_scale > @scale
                     
                     if @reset
@@ -205,16 +202,16 @@ module StackBuilder::Stack
                             threads << Thread.new {
                                 
                                 begin
-                                    @@logger.debug("Deleting #{self} #{i}.")
-                                    $stdout.printf("Deleting node \"%s\" #%d.\n", @name, i) unless @@logger.debug?
+                                    @logger.debug("Deleting #{self} #{i}.")
+                                    $stdout.printf("Deleting node \"%s\" #%d.\n", @name, i) unless @logger.debug?
                                     
-                                    self.process(connection, i, delete_events)
-                                    self.delete(connection, i)
+                                    self.process(i, delete_events)
+                                    self.delete(i)
                                     
                                 rescue Exception => msg
                                     
                                     puts("Fatal Error: #{msg}")
-                                    @@logger.debug(msg.backtrace.join("\n\t"))
+                                    @logger.debug(msg.backtrace.join("\n\t"))
                                     cloud_error("Deleting VM #{name} / #{i} terminated with an error: #{msg}") 
                                 end
                             }
@@ -225,85 +222,80 @@ module StackBuilder::Stack
                 end
                 
                 if events.nil? || !events.include?("uninstall")
-                    @@logger.debug("Updating scale for #{self} as #{@scale}")
+                    @logger.debug("Updating scale for #{self} as #{@scale}")
                     
                     self.update_scale(@scale)
                     @scale.times do |i|
                         threads << Thread.new {
-                            self.create(connection, i)
+                            self.create(i)
                         }
                     end
                 end
             end
             
-            return threads
+            threads
         end
 
-        def orchestrate(connection, events)
-            
-            unless connection.nil?
-                
-                scale = (@target.nil? ? @scale : @target.scale)
-                if scale > 0
-                    
-                    threads = [ ]
-                    
-                    if @sync == "first"
-                        self.process(connection, scale, events)
-                        scale -= 1
-                    end
-                    
-                    if @sync == "all"
-                        scale.times do |i|
-                            self.process(connection, i, events)
-                        end
-                    else
-                        scale.times do |i|
-                            threads << Thread.new {
-                                
-                                @@logger.debug("Processing #{self} VM ##{i}#{events.nil? ? "" : " with events \"" + events.collect { |e| e }.join(",") + "\""}.")
-                                $stdout.printf("Processing node \"%s\" #%d.\n", @name, i) unless @@logger.debug?
+        def orchestrate(events)
 
-                                if events.nil?
-                                    # Always run default events for node building. The idempotent nature of Chef
-                                    # should ensure that if the VM is consistent then the recipe will be a noop
-                                    orchestrate_events = Set.new([ "create", "install", "configure", "start" ])
-                                    @@logger.debug("Events for node VM #{name} / #{i} build: #{orchestrate_events.collect { |e| e }.join(", ")}")
-                                else
-                                    # If no scale up occurs then run chef roles only for the given event.
-                                    orchestrate_events = events.clone
-                                    # If new VMs have been added to the cluster to scale up then add default events for the new VM.
-                                    if self.get_node_attributes[i].nil?
-                                        orchestrate_events = orchestrate_events.merge([ "create", "install", "configure", "start" ])
-                                        @@logger.debug("Events for node VM #{name} / #{i} build: #{orchestrate_events.collect { |e| e }.join(", ")}")
-                                    end
-                                end
-                                
-                                self.process(connection, i, orchestrate_events)
-                            }
-                        end
-                    end
-                    
-                    threads.each { |t| t.join }
+            scale = (@target.nil? ? @scale : @target.scale)
+            if scale > 0
+
+                threads = [ ]
+
+                if @sync == "first"
+                    self.process(scale, events)
+                    scale -= 1
                 end
-            else
-                @@logger.debug("Validating #{self}...")
+
+                if @sync == "all"
+                    scale.times do |i|
+                        self.process(i, events)
+                    end
+                else
+                    scale.times do |i|
+                        threads << Thread.new {
+
+                            @logger.debug("Processing #{self} VM ##{i}#{events.nil? ? "" : " with events \"" + events.collect { |e| e }.join(",") + "\""}.")
+                            $stdout.printf("Processing node \"%s\" #%d.\n", @name, i) unless @logger.debug?
+
+                            if events.nil?
+                                # Always run default events for node building. The idempotent nature of Chef
+                                # should ensure that if the VM is consistent then the recipe will be a noop
+                                orchestrate_events = Set.new([ "create", "install", "configure", "start" ])
+                                @logger.debug("Events for node VM #{name} / #{i} build: #{orchestrate_events.collect { |e| e }.join(", ")}")
+                            else
+                                # If no scale up occurs then run chef roles only for the given event.
+                                orchestrate_events = events.clone
+                                # If new VMs have been added to the cluster to scale up then add default events for the new VM.
+                                if self.get_node_attributes[i].nil?
+                                    orchestrate_events = orchestrate_events.merge([ "create", "install", "configure", "start" ])
+                                    @logger.debug("Events for node VM #{name} / #{i} build: #{orchestrate_events.collect { |e| e }.join(", ")}")
+                                end
+                            end
+
+                            self.process(i, orchestrate_events)
+                        }
+                    end
+                end
+
+                threads.each { |t| t.join }
             end
-            
+
             executable_parents = [ ]
             parent_nodes.each do |p|
                 executable_parents << p if p.dec_dependency_count == 0
             end
-            return executable_parents
+            executable_parents
         end
         
-        def create(connection, index)
+        def create(index)
         end
         
-        def process(connection, index, events)
+        def process(index, events)
         end
         
-        def delete(connection, index)
+        def delete(index)
         end
         
         def to_s

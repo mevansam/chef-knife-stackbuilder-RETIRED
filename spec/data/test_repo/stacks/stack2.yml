@@ -1,7 +1,7 @@
 ---
 # Stack
 name: Stack2
-environment: DEV
+environment: TEST
 
 stack:
 - node: server1

@@ -3,6 +3,12 @@ PATH
   specs:
     knife-stackbuilder (0.0.1)
 
+PATH
+  remote: /Users/msamaratunga/Work/community/chef/knife-vagrant2
+  specs:
+    knife-vagrant2 (0.0.5)
+      chef (>= 0.10.10)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -219,6 +225,7 @@ DEPENDENCIES
   guard-rspec
   highline
   knife-stackbuilder!
+  knife-vagrant2!
   rake
   rb-fsevent
   simplecov

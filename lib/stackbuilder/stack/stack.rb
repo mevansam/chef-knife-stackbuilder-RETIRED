@@ -10,128 +10,89 @@ module StackBuilder::Stack
         attr_reader :name
         attr_reader :nodes
         
-        def initialize(connection, system_pattern, id = nil, overrides = nil)
+        def initialize(provider, stack_file, id = nil, overrides = nil)
 
             StackBuilder::Common::Config.set_silent
             @logger = StackBuilder::Common::Config.logger
-            
-            cookbook_repo_path = File.dirname(File.expand_path(system_pattern));
 
-            system = YAML.load_file(system_pattern)
-            merge_maps(system, overrides) unless overrides.nil?
-            
-            system_vms = nil
-            if !id.nil?
-                
-                # Retrieve any VMs that are part of the given system ID
-                properties = { }
-                properties["name"] = "^(?!__Deleted__)"
-                properties["description"] = "; ID: #{id}"
-                system_vms = Click2Compute::API::VM::find(connection, properties, false)
-                # system_vms = Click2Compute::API::VM::find(connection, properties)
-                
-                cloud_error("No VMs found for system ID #{id}.") if system_vms.empty?
-                
-                @id = id
-            else
+            @provider = provider
+
+            stack = YAML.load_file(stack_file)
+            merge_maps(stack, overrides) unless overrides.nil?
+
+            if id.nil?
                 @id = SecureRandom.uuid
+                @provider.set_stack_id(@id)
+            else
+                @id = id
+                @provider.set_stack_id(@id, false)
             end
-            
-            @connection = connection
-            
-            @name = system["name"]
-            @has_firecall_ticket = system.has_key?("firecall_ticket")
-            
-            @nodes = { }
-            
-            if system.has_key?("nodes") &&
-                system["nodes"].is_a?(Array)
-                
-                system["nodes"].each do |n|
-                    
-                    raise ArgumentError, "Node does not have a name: #{n}" unless n.has_key?("name")
-                    
-                    r = n["name"]
-                    raise ArgumentError, "Node with name \"#{r}\" already exists." if @nodes.has_key?(r)
-                    
-                    vms = [ ]
-                    unless system_vms.nil?
 
-                        system_vms.each do |vm|
-                            if vm.name == r
-                                server_index = vm.info["description"][/; Index: \d+/]
-                                unless server_index.nil?
-                                    vms[server_index[/\d+/].to_i] = vm
-                                else
-                                    cloud_error( "A system node has a description without a valid server " \
-                                        "index value: vm = #{vm}}; description = #{vm.info["description"]}" )
-                                end
-                            end
-                        end
-                    end
-                    
-                    if n.has_key?("vm")
-                        @nodes[r] = Knife::StackBuilder::VMNode.new(n, system, @id, @nodes, cookbook_repo_path, vms)
-                    elsif n.has_key?("target_vm")
-                        @nodes[r] = Knife::StackBuilder::ChefNode.new(n, system, @id, @nodes, cookbook_repo_path, vms)
-                    else
-                        @logger.debug("Creating generic no-op node: #{n}")
-                        @nodes[r] = Knife::StackBuilder::Node.new(n, system, @id, @nodes)
-                    end
-                    
-                end
+            @name = stack["name"]
+            @nodes = { }
+
+            if stack.has_key?("stack") && stack["stack"].is_a?(Array)
                 
-                system["nodes"].each do |n|
+                stack["stack"].each do |n|
                     
-                    node = @nodes[n["name"]] 
+                    raise ArgumentError, "Node does not have a 'node' attribute " +
+                        "that identifies it: #{n}" unless n.has_key?("node")
                     
-                    if n.has_key?("depends_on") &&
-                        n["depends_on"].is_a?(Array)
+                    node_id = n["node"]
+                    raise ArgumentError, "Node identified by \"#{node_id}\" " +
+                        "already exists." if @nodes.has_key? (node_id)
+
+                    n["attributes"] = { } if n["attributes"].nil?
+                    merge_maps(n["attributes"], stack["attributes"]) unless stack["attributes"].nil?
+
+                    node_task = @provider.get_node_task(n)
+                    raise InvalidArgs, "Node task is of an invalid type. It is not derived " +
+                        "from StackBuilder::Stack::Node." unless node_task.is_a?(NodeTask)
+
+                    @nodes[node_id] = node_task
+                end
+
+                # Associate dependencies
+                stack["stack"].each do |n|
+                    
+                    node_task = @nodes[n["node"]]
+                    
+                    if n.has_key?("depends_on") && n["depends_on"].is_a?(Array)
                         
                         n["depends_on"].each do |d|
                             
-                            raise ArgumentError, "Dependency node with name \"#{d}\" is not defined." unless @nodes.has_key?(d)
+                            raise ArgumentError, "Dependency node with name \"#{d}\" " +
+                                "is not defined." unless @nodes.has_key?(d)
                             
-                            dependent_node = @nodes[d]
-                            
-                            dependent_node.parent_nodes << node
-                            node.child_nodes << dependent_node
+                            dependent_node_task = @nodes[d]
+                            dependent_node_task.parent_nodes << node_task
+                            node_task.child_nodes << dependent_node_task
                         end
                     end
                     
-                    node.validate_target()
+                    node_task.validate_target(@nodes)
                 end
                 
             else
                 raise ArgumentError, "System needs to have at least one node defined."
             end
         end
-        
-        def validate
-            self.orchestrate(nil, nil)
-        end
-        
-        def orchestrate(connection = @connection, events = nil)
-            
-            if !connection.nil?
-                connection.validate_ssh_login() if !@has_firecall_ticket
-            end
-            
+
+        def orchestrate(events = nil)
+
             prep_threads = [ ]
             
             execution_list = [ ]
             @nodes.each do |r, n|
                 execution_list << n if n.init_dependency_count == 0
-                prep_threads += n.prepare(connection, events) unless connection.nil?
+                prep_threads += n.prepare(events)
             end
             
             execution_count = 0
             terminate = false
             
             while !terminate && !execution_list.empty? do
-                
-                @logger.debug("#{connection.nil? ? "Validating" : "Orchestrating"} => \n\t#{execution_list.collect { |n| n }.join("\n\t")}")
-                
+
                 mutex = Mutex.new
                 new_execution_list = [ ]
                 
@@ -139,7 +100,7 @@ module StackBuilder::Stack
                 execution_list.each do |n|
                     exec_threads << Thread.new {
                         begin
-                            executable_parents = n.orchestrate(connection, events)
+                            executable_parents = n.orchestrate(events)
                             
                             mutex.synchronize {
                                 new_execution_list |= executable_parents
@@ -158,18 +119,9 @@ module StackBuilder::Stack
             end
             
             prep_threads.each { |t| t.join }
-            
-            if connection.nil?
-                
-                cloud_error( "All the nodes were not processed. This could" \
-                    " be due to a circular dependency." ) if execution_count < @nodes.size
-                
-                @logger.debug("All dependencies passed validation.") if @logger.debug?
-                
-            elsif execution_count < @nodes.size
-                
-                cloud_error("Processing of system nodes did not complete because of errors.")
-            end
+
+            raise StackBuilderError, "Processing of system nodes did not " +
+                "complete because of errors." if execution_count < @nodes.size
         end
         
         def status
@@ -189,9 +141,9 @@ module StackBuilder::Stack
             node.reset
             
             if events.nil?
-                self.orchestrate(@connection, Set.new([ "configure" ]))
+                self.orchestrate(Set.new([ "configure" ]))
             else
-                self.orchestrate(@connection, events)
+                self.orchestrate(events)
             end
         end
         
@@ -201,14 +153,14 @@ module StackBuilder::Stack
                 n.reset
             end
             
-            self.orchestrate(@connection, Set.new([ "configure" ]))
+            self.orchestrate(Set.new([ "configure" ]))
         end
 
         def destroy
             
             begin
                 destroy_events = Set.new([ "stop", "uninstall" ])
-                self.orchestrate(@connection, destroy_events)
+                self.orchestrate(destroy_events)
             rescue Exception => msg
                 @logger.warn("An error was encountered attempting to do an orderly tear down of the system: #{msg}")
                 @logger.info("All remaining nodes will be destroyed forcefully.")
@@ -217,13 +169,13 @@ module StackBuilder::Stack
             threads = [ ]
             
             @nodes.values.each do |n|
-                n.get_current_scale().times do |i|
+                n.get_current_scale.times do |i|
                     threads << Thread.new {
         
                         @logger.debug("Deleted #{n} #{i}.")
                         $stdout.printf("Deleting node \"%s\" #%d.\n", n.name, i) unless @logger.debug?
                         
-                        n.delete(@connection, i)
+                        n.delete(i)
                     }
                 end
             end

@@ -16,6 +16,9 @@ group :development, :test do
     gem 'simplecov'
     gem 'simplecov-rcov'
 
+    #gem 'knife-vagrant2', :git => 'https://github.com/mevansam/knife-vagrant2.git'
+    gem 'knife-vagrant2', :path => '/Users/msamaratunga/Work/community/chef/knife-vagrant2'
+
     gem 'rb-fsevent', :require => false if RUBY_PLATFORM =~ /darwin/i
     gem 'guard-rspec'
     gem 'guard-livereload'

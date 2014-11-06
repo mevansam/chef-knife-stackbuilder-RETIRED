@@ -1,6 +1,7 @@
 *.gem
 *.rbc
 
+.vagrant
 .config
 .project
 InstalledFiles

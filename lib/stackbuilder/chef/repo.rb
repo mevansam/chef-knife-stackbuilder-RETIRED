@@ -106,6 +106,7 @@ module StackBuilder::Chef
             environments.each do |env_name|
                 knife_cmd.name_args = [ "#{@repo_path}/environments/#{env_name}.rb" ]
                 run_knife(knife_cmd)
+                puts "Uploaded environment '#{env_name}' to '#{Chef::Config.chef_server_url}'."
             end
         end
 
@@ -362,6 +363,9 @@ module StackBuilder::Chef
 
             File.delete(tmpfile)
 
+            puts "Uploaded '#{server_env_name}' certificate for server '#{server_name}' " +
+                "to data bag '#{data_bag_name}' at '#{Chef::Config.chef_server_url}'."
+
         rescue Exception => msg
             File.delete(tmpfile) unless tmpfile.nil?
             @logger.error(msg)
@@ -385,6 +389,9 @@ module StackBuilder::Chef
                 run_knife(knife_cmd)
 
                 File.delete(tmpfile)
+
+                puts "Uploaded item '#{data_bag_item_name}' of data bag " +
+                    "'#{data_bag_name}' to '#{Chef::Config.chef_server_url}'."
             end
 
         rescue Exception => msg
@@ -403,6 +410,10 @@ module StackBuilder::Chef
             knife_cmd = Chef::Knife::RoleFromFile.new
             knife_cmd.name_args = [ tmpfile ]
             run_knife(knife_cmd)
+
+            File.delete(tmpfile)
+
+            puts "Uploaded role '#{role_name}' to '#{Chef::Config.chef_server_url}'."
 
         rescue Exception => msg
             File.delete(tmpfile) unless tmpfile.nil?

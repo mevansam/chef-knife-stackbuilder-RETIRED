@@ -35,8 +35,10 @@ require 'chef/knife/cookbook_list'
 require 'chef/knife/role_list'
 require 'chef/knife/role_show'
 
-# server = ChefZero::Server.new(port: 9999, debug: true)
-# server.start_background
+unless system("lsof -i:9999", out: '/dev/null')
+    server = ChefZero::Server.new(host: '0.0.0.0', port: 9999, debug: true)
+    server.start_background
+end
 
 logger = Chef::Log.logger
 logger.level = Logger::ERROR
