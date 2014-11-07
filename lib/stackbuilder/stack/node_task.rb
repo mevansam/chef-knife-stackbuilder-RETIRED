@@ -12,10 +12,16 @@ module StackBuilder::Stack
         attr_reader :counter
         attr_reader :parent_nodes
         attr_reader :child_nodes
+
+        attr_reader :manager
         
-        def initialize(node_config, id)
+        def initialize(manager, node_config, id)
             
             @logger = StackBuilder::Config.logger
+
+            @manager = manager
+            raise InvalidArgs, "Node manager is not derived from
+                StackBuilder::Stack::NodeManager." unless node_task.is_a?(NodeManager)
 
             @id = id
             @parent_nodes = [ ]
@@ -34,7 +40,7 @@ module StackBuilder::Stack
             merge_maps(@attributes, node_config["attributes"]) if node_config.has_key?("attributes") && !node_config["attributes"].nil?
             merge_maps(@attributes, system_config["attributes"]) if system_config.has_key?("attributes") && !system_config["attributes"].nil?
 
-            @reset = false            
+            @reset = false
             @target = nil
             
             @node_mutex = Mutex.new
@@ -62,27 +68,7 @@ module StackBuilder::Stack
                 end
             end
         end
-        
-        def get_current_scale
-            @scale
-        end
-        
-        def update_scale(scale)
-            @scale = scale
-        end
-        
-        def get_resource_sync(index)
-            nil
-        end
-        
-        def get_resource(index)
-            nil
-        end
-        
-        def get_node_attributes
-            [ ]
-        end
-        
+
         def parse_attributes(attributes, index)
             
             results = { }
@@ -108,7 +94,7 @@ module StackBuilder::Stack
                     node = @nodes[l]
                     unless node.nil?
                         
-                        node_attributes = node.get_node_attributes
+                        node_attributes = node.manager.node_attributes
                         unless node_attributes.nil? || node_attributes.empty?
                             
                             indexes = [ ]
@@ -190,7 +176,7 @@ module StackBuilder::Stack
             
             if @target.nil?
 
-                current_scale = self.get_current_scale
+                current_scale = @manager.get_scale
                 if current_scale > @scale
                     
                     if @reset
@@ -205,8 +191,8 @@ module StackBuilder::Stack
                                     @logger.debug("Deleting #{self} #{i}.")
                                     $stdout.printf("Deleting node \"%s\" #%d.\n", @name, i) unless @logger.debug?
                                     
-                                    self.process(i, delete_events)
-                                    self.delete(i)
+                                    @manager.process(i, delete_events)
+                                    @manager.delete(i)
                                     
                                 rescue Exception => msg
                                     
@@ -223,11 +209,11 @@ module StackBuilder::Stack
                 
                 if events.nil? || !events.include?("uninstall")
                     @logger.debug("Updating scale for #{self} as #{@scale}")
-                    
-                    self.update_scale(@scale)
+
+                    @manager.set_scale(@scale)
                     @scale.times do |i|
                         threads << Thread.new {
-                            self.create(i)
+                            @manager.create(i)
                         }
                     end
                 end
@@ -244,13 +230,13 @@ module StackBuilder::Stack
                 threads = [ ]
 
                 if @sync == "first"
-                    self.process(scale, events)
+                    @manager.process(scale, events)
                     scale -= 1
                 end
 
                 if @sync == "all"
                     scale.times do |i|
-                        self.process(i, events)
+                        @manager.process(i, events)
                     end
                 else
                     scale.times do |i|
@@ -268,13 +254,13 @@ module StackBuilder::Stack
                                 # If no scale up occurs then run chef roles only for the given event.
                                 orchestrate_events = events.clone
                                 # If new VMs have been added to the cluster to scale up then add default events for the new VM.
-                                if self.get_node_attributes[i].nil?
+                                if @manager.node_attributes[i].nil?
                                     orchestrate_events = orchestrate_events.merge([ "create", "install", "configure", "start" ])
                                     @logger.debug("Events for node VM #{name} / #{i} build: #{orchestrate_events.collect { |e| e }.join(", ")}")
                                 end
                             end
 
-                            self.process(i, orchestrate_events)
+                            @manaager.process(i, orchestrate_events)
                         }
                     end
                 end
@@ -288,16 +274,7 @@ module StackBuilder::Stack
             end
             executable_parents
         end
-        
-        def create(index)
-        end
-        
-        def process(index, events)
-        end
-        
-        def delete(index)
-        end
-        
+
         def to_s
             t = (@target.nil? ? "" : ", target[ #{@target} ]")
             p = "Parent_Nodes[#{@parent_nodes.collect { |n| "#{n.name},#{n.counter}" }.join(", ")}]"

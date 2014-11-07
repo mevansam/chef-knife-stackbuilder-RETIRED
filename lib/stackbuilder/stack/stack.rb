@@ -16,6 +16,8 @@ module StackBuilder::Stack
             @logger = StackBuilder::Common::Config.logger
 
             @provider = provider
+            raise InvalidArgs, "Node provider is not derived from
+                StackBuilder::Stack::NodeProvider." unless node_task.is_a?(NodeProvider)
 
             stack = YAML.load_file(stack_file)
             merge_maps(stack, overrides) unless overrides.nil?

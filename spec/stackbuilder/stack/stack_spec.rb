@@ -6,6 +6,26 @@ include StackBuilder::Common::Helpers
 
 describe StackBuilder::Stack do
 
+    class NodeBuilderTask < NodeTask
+
+    end
+
+    class MockNodeProvider < NodeProvider
+
+        def initialize
+
+            nodes = { }
+        end
+
+        def set_stack_id(id, new = true)
+
+        end
+
+        def get_node_task(node_config)
+
+        end
+    end
+
     before(:all) do
         @logger = StackBuilder::Common::Config.logger
     end
@@ -15,7 +35,7 @@ describe StackBuilder::Stack do
 
     it "should initialize a stack file" do
 
-        # Chef::Knife::Search
+
     end
 
     it "should orchestrate a stack file" do
