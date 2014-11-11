@@ -1,0 +1,76 @@
+---
+name: data
+
+# Node Dependency Tree
+#
+#  A.4
+#  |
+#  |--> B.2
+#  |    |
+#  |    +--> E.1
+#  |    |
+#  |    +-------> F.1
+#  |               ^
+#  |               |
+#  |-------> C.2 --+--> G.1
+#  |          ^
+#  |          |
+#  +--> D.3 --+
+#
+# Nodes async exec order
+#
+# 1) E,F,G
+# 2) B,C
+# 3) D
+# 4) A -> E,F,G
+#
+# A applies it processing to target nodes E,F,G
+#
+stack:
+
+- node: A
+  type: static
+  depends_on:
+  - B
+  - C
+  - D
+  targets:
+  - E
+  - F
+  - G
+  attributes:
+    dep_B_resource_ids: nodes[B][*][id]
+    dep_C_resource_ids: nodes[C][*][id]
+    dep_D_resource_ids: nodes[D][0][id]
+
+- node: B
+  type: dynamic
+  depends_on:
+  - E
+  #- F ... dependency on F should be implied from attribute value
+  attributes:
+    dep_E_resource_ids: nodes[E][*][id]
+    dep_F_resource_ids: nodes[F][*][id]
+
+- node: C
+  type: dynamic
+  depends_on:
+  - F
+  - G
+  attributes:
+    dep_E_resource_ids: nodes[F][0][id]
+    dep_F_resource_ids: nodes[G][0][id]
+
+- node: D
+  type: dynamic
+  depends_on:
+  - C
+
+- node: E
+  type: dynamic
+
+- node: F
+  type: dynamic
+
+- node: G
+  type: dynamic

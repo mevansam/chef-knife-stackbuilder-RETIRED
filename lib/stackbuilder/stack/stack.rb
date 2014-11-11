@@ -15,9 +15,10 @@ module StackBuilder::Stack
             StackBuilder::Common::Config.set_silent
             @logger = StackBuilder::Common::Config.logger
 
-            @provider = provider
             raise InvalidArgs, "Node provider is not derived from
-                StackBuilder::Stack::NodeProvider." unless node_task.is_a?(NodeProvider)
+                StackBuilder::Stack::NodeProvider." unless provider.is_a?(NodeProvider)
+
+            @provider = provider
 
             stack = YAML.load_file(stack_file)
             merge_maps(stack, overrides) unless overrides.nil?
@@ -47,11 +48,11 @@ module StackBuilder::Stack
                     n["attributes"] = { } if n["attributes"].nil?
                     merge_maps(n["attributes"], stack["attributes"]) unless stack["attributes"].nil?
 
-                    node_task = @provider.get_node_task(n)
+                    node_manager = @provider.get_node_manager(n)
                     raise InvalidArgs, "Node task is of an invalid type. It is not derived " +
-                        "from StackBuilder::Stack::Node." unless node_task.is_a?(NodeTask)
+                        "from StackBuilder::Stack::Node." unless node_manager.is_a?(NodeManager)
 
-                    @nodes[node_id] = node_task
+                    @nodes[node_id] = NodeTask.new(node_manager, @nodes, n, id)
                 end
 
                 # Associate dependencies
@@ -63,16 +64,25 @@ module StackBuilder::Stack
                         
                         n["depends_on"].each do |d|
                             
-                            raise ArgumentError, "Dependency node with name \"#{d}\" " +
+                            raise ArgumentError, "Dependency node \"#{d}\" " +
                                 "is not defined." unless @nodes.has_key?(d)
                             
-                            dependent_node_task = @nodes[d]
-                            dependent_node_task.parent_nodes << node_task
-                            node_task.child_nodes << dependent_node_task
+                            node_task.add_dependency(d)
                         end
                     end
-                    
-                    node_task.validate_target(@nodes)
+
+                    if n.has_key?("targets") && n["targets"].is_a?(Array)
+
+                        n["targets"].each do |d|
+
+                            raise ArgumentError, "Target node \"#{d}\" " +
+                                "is not defined." unless @nodes.has_key?(d)
+
+                            node_task.add_dependency(d, true)
+                        end
+                    end
+
+                    node_task.process_attribute_dependencies
                 end
                 
             else
@@ -80,16 +90,45 @@ module StackBuilder::Stack
             end
         end
 
-        def orchestrate(events = nil)
+        def orchestrate(events = nil, name = nil)
 
             prep_threads = [ ]
-            
             execution_list = [ ]
-            @nodes.each do |r, n|
-                execution_list << n if n.init_dependency_count == 0
-                prep_threads += n.prepare(events)
+
+            if name.nil?
+
+                @nodes.each_value do |n|
+                    execution_list << n if n.init_dependency_count == 0
+                    prep_threads += n.prepare
+                end
+
+                task_count = @nodes.size
+            else
+                # Only process nodes that depend on 'name' and their dependencies
+
+                def add_parent_task(node, nodes_visited)
+
+                    nodes_visited << node.name
+                    node.init_dependency_count(1)
+
+                    node.parent_nodes.each do |n|
+                        add_parent_task(n, nodes_visited)
+                    end
+                end
+
+                node = @nodes[name]
+                nodes_visited = Set.new([ node.name ])
+
+                execution_list << node
+                prep_threads += node.prepare
+
+                node.parent_nodes.each do |n|
+                    add_parent_task(n, nodes_visited)
+                end
+
+                task_count = nodes_visited.size
             end
-            
+
             execution_count = 0
             terminate = false
             
@@ -122,40 +161,31 @@ module StackBuilder::Stack
             
             prep_threads.each { |t| t.join }
 
-            raise StackBuilderError, "Processing of system nodes did not " +
-                "complete because of errors." if execution_count < @nodes.size
-        end
-        
-        def status
+            @nodes.each_value do |n|
+                n.prev_scale = n.scale
+            end
+
+            raise StackBuilder::Common::StackBuilderError, "Processing of stack nodes " +
+                "did not complete because of errors." if execution_count < task_count
         end
         
         def scale(name, scale, events = nil)
             
             node = @nodes[name]
-            
-            cloud_error("Invalid node name \"#{name}'\".") if node.nil?
+
             raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if scale < 1
-            
+            raise StackBuilder::Common::StackBuilderError, "Invalid node name \"#{name}'\"." if node.nil?
+
             @logger.debug( "Increasing scale for '#{node}' to '#{scale}' which currently has a " \
-                "default scale of #{node.scale} and actual scale of #{node.get_current_scale}.")
+                "default scale of #{node.scale} and actual scale of #{node.manager.get_scale}.")
             
             node.scale = scale
-            node.reset
-            
+
             if events.nil?
-                self.orchestrate(Set.new([ "configure" ]))
+                self.orchestrate(Set.new([ "configure" ]), name)
             else
-                self.orchestrate(events)
+                self.orchestrate(events, name)
             end
-        end
-        
-        def reset
-            
-            @nodes.values.each do |n|
-                n.reset
-            end
-            
-            self.orchestrate(Set.new([ "configure" ]))
         end
 
         def destroy
@@ -171,13 +201,13 @@ module StackBuilder::Stack
             threads = [ ]
             
             @nodes.values.each do |n|
-                n.get_current_scale.times do |i|
+                (n.manager.get_scale - 1).downto(0) do |i|
                     threads << Thread.new {
         
                         @logger.debug("Deleted #{n} #{i}.")
                         $stdout.printf("Deleting node \"%s\" #%d.\n", n.name, i) unless @logger.debug?
                         
-                        n.delete(i)
+                        n.manager.delete(i)
                     }
                 end
             end

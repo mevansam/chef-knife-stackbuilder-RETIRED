@@ -1,23 +1,23 @@
 ---
 name: data
-nodes:
-- name: A
+stack:
+- node: A
   depends_on:
   - B
   - C
   - D
-- name: B
+- node: B
   depends_on:
   - E
   - F
   - A
-- name: C
+- node: C
   depends_on:
   - F
   - G
-- name: D
+- node: D
   depends_on:
   - C
-- name: E
-- name: F
-- name: G
+- node: E
+- node: F
+- node: G

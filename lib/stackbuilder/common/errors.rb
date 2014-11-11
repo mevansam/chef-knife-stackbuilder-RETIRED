@@ -7,6 +7,10 @@ module StackBuilder::Common
     class NotImplemented < StackBuilderError; end
     class NotSupported < StackBuilderError; end
 
+    class StackCreateError < StackBuilderError; end
+    class StackOrchestrateError < StackBuilderError; end
+    class StackDeleteError < StackBuilderError; end
+
     class CertificateError < StackBuilderError; end
 
     class KnifeError < StackBuilderError; end

@@ -6,8 +6,12 @@ module StackBuilder::Stack
 
     class NodeManager
 
+        def get_name
+            raise NotImplemented, 'NodeManager.get_name'
+        end
+
         def get_scale
-            @scale
+            @scale.nil? ? 0 : @scale
         end
 
         def set_scale(scale)
@@ -22,7 +26,7 @@ module StackBuilder::Stack
             raise NotImplemented, 'NodeManager.create'
         end
 
-        def process(index, events)
+        def process(index, events, attributes, target = nil)
             raise NotImplemented, 'NodeManager.process'
         end
 
