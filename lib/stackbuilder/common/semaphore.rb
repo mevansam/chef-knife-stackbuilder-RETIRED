@@ -7,8 +7,11 @@ module StackBuilder::Common
     class Semaphore
 
         def initialize(maxval = nil)
+
             maxval = maxval.to_i unless maxval.nil?
-            raise ArgumentError.new("Semaphores must use a positive maximum value or have no maximum!") if maxval and maxval <= 0
+            raise ArgumentError, "Semaphores must use a positive maximum " +
+                "value or have no maximum!" if maxval and maxval <= 0
+
             @max   = maxval || -1
             @count = 0
             @mon   = Monitor.new

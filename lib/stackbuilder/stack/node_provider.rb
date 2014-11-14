@@ -8,7 +8,7 @@ module StackBuilder::Stack
 
         # Returns all the nodes matching the given
         # id as a hash of node => [ instances ]
-        def set_stack_id(id, new = true)
+        def set_stack(stack, id, new = true)
             raise NotImplemented, 'NodeProvider.set_stack_id'
         end
 

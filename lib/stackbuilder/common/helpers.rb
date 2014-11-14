@@ -240,13 +240,30 @@ module StackBuilder::Common
             error = StringIO.new
             output = StringIO.new
 
-            knife_cmd.ui = Chef::Knife::UI.new(output, error, STDIN, {})
-            knife_cmd.run
+            knife_cmd.ui = Chef::Knife::UI.new(output, error, STDIN, knife_cmd.config)
 
-            raise KnifeError, error.string if error.size>0
+            stdout = capture_stdout do
+                knife_cmd.run
+            end
+            Config.logger.debug(stdout)
+
             output.string
         end
 
+        def capture_stdout
+            # The output stream must be an IO-like object. In this case we capture it in
+            # an in-memory IO object so we can return the string value. You can assign any
+            # IO object here.
+            stdout = StringIO.new
+            previous_stdout, $stdout = $stdout, stdout
+            previous_stderr, $stderr = $stderr, stdout
+            yield
+            stdout.string
+        ensure
+            # Restore the previous value of stderr (typically equal to STDERR).
+            $stdout = previous_stdout
+            $stderr = previous_stderr
+        end
     end
 
 end

@@ -46,7 +46,13 @@ module StackBuilder::Stack
                 @sync = 'no'
             else
                 @sync = (node_config.has_key?('sync') ? node_config['sync'] : 'no')
-                @scale = (node_config.has_key?("scale") ? node_config["scale"] : 1)
+
+                current_scale = manager.get_scale
+                if current_scale==0
+                    @scale = (node_config.has_key?("scale") ? node_config["scale"] : 1)
+                else
+                    @scale = current_scale
+                end
 
                 raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if @scale < 1
             end
@@ -108,6 +114,12 @@ module StackBuilder::Stack
                 # is the target. i.e. no referenced targets
 
                 current_scale = @manager.get_scale
+
+                @resource_sync.size.step(current_scale - 1) do |i|
+                    @resource_sync[i] = StackBuilder::Common::Semaphore.new
+                    @resource_sync[i].signal
+                end
+
                 if current_scale > @scale
 
                     @logger.debug("Scaling #{self} from #{current_scale} down to #{@scale}")
@@ -164,7 +176,7 @@ module StackBuilder::Stack
 
                             begin
                                 @logger.debug("Creating #{self} #{i}.")
-                                $stdout.printf( "Creating node resource '%s[#%d]'.\n",
+                                $stdout.printf( "Creating node resource '%s[%d]'.\n",
                                     @name, i) unless @logger.debug?
 
                                 @manager.create(i)
@@ -243,7 +255,7 @@ module StackBuilder::Stack
         def spawn_processing(i, events, threads, target = nil)
 
             if target.nil?
-                resource_sync[i].wait
+                @resource_sync[i].wait
 
                 target_manager = nil
                 prev_scale = @prev_scale
@@ -294,7 +306,7 @@ module StackBuilder::Stack
                         "terminated with an error: #{msg}"
                 ensure
                     if target.nil?
-                        resource_sync[i].signal
+                        @resource_sync[i].signal
                     else
                         target.resource_sync[i].signal
                     end

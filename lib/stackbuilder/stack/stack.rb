@@ -24,11 +24,11 @@ module StackBuilder::Stack
             merge_maps(stack, overrides) unless overrides.nil?
 
             if id.nil?
-                @id = SecureRandom.uuid
-                @provider.set_stack_id(@id)
+                @id = SecureRandom.uuid.gsub(/-/, '')
+                @provider.set_stack(stack, @id)
             else
                 @id = id
-                @provider.set_stack_id(@id, false)
+                @provider.set_stack(stack, @id, false)
             end
 
             @name = stack["name"]
@@ -176,9 +176,6 @@ module StackBuilder::Stack
             raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if scale < 1
             raise StackBuilder::Common::StackBuilderError, "Invalid node name \"#{name}'\"." if node.nil?
 
-            @logger.debug( "Increasing scale for '#{node}' to '#{scale}' which currently has a " \
-                "default scale of #{node.scale} and actual scale of #{node.manager.get_scale}.")
-            
             node.scale = scale
 
             if events.nil?

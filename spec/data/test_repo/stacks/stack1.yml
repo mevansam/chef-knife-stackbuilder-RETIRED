@@ -5,24 +5,34 @@ environment: DEV
 
 stack:
 
-- node: database
-  depends_on:
-  run_list:
-  host:
-    name: host1
-    domain: $DOMAIN
-    ip:
-    knife:
-      plugin:
-      args:
+#- node: database
+#  depends_on:
+#  attributes:
+#    server_root_password: passw0rd
+#    server_debian_password: passw0rd
+#  run_list:
+#  - recipe[mysql:server]
+#  knife:
+#    plugin: vagrant
+#    box: ubuntu/trusty64
+#    # Give VM and IP in a private network
+#    subnet: 192.168.50.0/24
 
 - node: wordpress
   depends_on:
+#  - database
+  attributes:
+    wordpress:
+      db:
+        name:
+        host:
+        user:
+        pass:
   run_list:
-  host:
-    name: host1
-    domain: $DOMAIN
-    ip:
-    knife:
-      plugin:
-      args:
+  - recipe[mysql:client]
+  - recipe[wordpress]
+  knife:
+    plugin: vagrant
+    box: ubuntu/trusty64
+    # Give VM and IP in a private network
+    subnet: 192.168.50.0/24

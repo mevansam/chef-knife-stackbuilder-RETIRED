@@ -46,8 +46,7 @@ class MockNodeProvider < StackBuilder::Stack::NodeProvider
         @num_static = 0
     end
 
-    def set_stack_id(id, new = true)
-
+    def set_stack(stack, id, new = true)
         @id = id
     end
 
