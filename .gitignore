@@ -1,6 +1,7 @@
 *.gem
 *.rbc
 
+.DS_Store
 .vagrant
 .config
 .project
