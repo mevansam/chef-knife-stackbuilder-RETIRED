@@ -20,7 +20,7 @@ module StackBuilder::Stack
 
             @provider = provider
 
-            stack = YAML.load_file(stack_file)
+            stack = StackBuilder::Common.load_yaml(stack_file)
             merge_maps(stack, overrides) unless overrides.nil?
 
             if id.nil?
@@ -28,7 +28,7 @@ module StackBuilder::Stack
                 @provider.set_stack(stack, @id)
             else
                 @id = id
-                @provider.set_stack(stack, @id, false)
+                @provider.set_stack(stack, @id)
             end
 
             @name = stack["name"]
@@ -106,13 +106,15 @@ module StackBuilder::Stack
             else
                 # Only process nodes that depend on 'name' and their dependencies
 
-                def add_parent_task(node, nodes_visited)
+                def add_parent_task(node, prep_threads, nodes_visited)
 
+                    prep_threads += node.prepare
                     nodes_visited << node.name
+
                     node.init_dependency_count(1)
 
                     node.parent_nodes.each do |n|
-                        add_parent_task(n, nodes_visited)
+                        add_parent_task(n, prep_threads, nodes_visited)
                     end
                 end
 
@@ -123,7 +125,7 @@ module StackBuilder::Stack
                 prep_threads += node.prepare
 
                 node.parent_nodes.each do |n|
-                    add_parent_task(n, nodes_visited)
+                    add_parent_task(n, prep_threads, nodes_visited)
                 end
 
                 task_count = nodes_visited.size
@@ -149,7 +151,7 @@ module StackBuilder::Stack
                             }                    
                         rescue Exception => msg
                             @logger.error("Orchestrating node '#{n}' terminated with an exception: #{msg}")
-                            @logger.debug(msg.backtrace.join("\n\t"))
+                            @logger.info(msg.backtrace.join("\n\t"))
                             terminate = true
                         end
                     }
@@ -186,6 +188,8 @@ module StackBuilder::Stack
         end
 
         def destroy
+
+            @nodes.values.each { |n| n.deleted = true }
             
             begin
                 destroy_events = Set.new([ "stop", "uninstall" ])

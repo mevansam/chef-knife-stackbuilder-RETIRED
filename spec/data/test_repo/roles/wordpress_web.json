@@ -9,6 +9,7 @@
         "env_value": "#{env['ENV_KEY1']}"
     },
     "run_list": [
+        "recipe[ohai]",
         "recipe[wordpress]"
     ],
     "env_run_lists": {

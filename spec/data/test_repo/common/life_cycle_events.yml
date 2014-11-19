@@ -1,0 +1,8 @@
+wordpress_database:
+  run_on_event:
+    configure: >
+      mysql --user=root --password=<%= attributes['mysql']['server_root_password'] %> -e "
+        create database if not exists wordpress;
+        grant all privileges on wordpress.* to 'wordpress'@'%'
+          identified by '<%= attributes['mysql']['server_root_password'] %>';
+      "

@@ -9,10 +9,13 @@ module StackBuilder::Chef
         def initialize
         end
 
-        def set_stack(stack, id, new = true)
+        def set_stack(stack, id)
 
             @stack = stack
             @id = id
+
+            Chef::Config[:chef_server_url] = stack['chef_server_url'] if stack.has_key?('chef_server_url')
+            Chef::Config[:environment] = stack['environment'] if stack.has_key?('environment')
         end
 
         def get_node_manager(node_config)

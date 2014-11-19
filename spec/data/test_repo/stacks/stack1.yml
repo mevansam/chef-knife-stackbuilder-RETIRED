@@ -1,38 +1,75 @@
 ---
 # Stack
 name: Stack1
+
 environment: DEV
+chef_server_url: http://192.168.50.1:9999
+
+# Common referenced values
+common:
+  password: &password passw0rd
+
+# Knife bootstrap and ssh attributes. The plugin attribute is used
+# to determine which knife plugin to use for node creation. If a plugin
+# is not provided it would be assumed that the host exists.
+knife: &knife
+  plugin: vagrant
+  box: chef/ubuntu-14.04
+  box_url: https://vagrantcloud.com/chef/boxes/ubuntu-14.04
+  subnet: 192.168.50.0/24
+  chef_ipaddress: eth1
+  identity_file: ~/.vagrant/insecure_key
+  ssh_user: vagrant
+  sudo: true
+  inline_config: |
+    config.ohai.enable = true
+    config.ohai.primary_nic = "eth1"
+    config.vm.provision "shell", inline: "mkdir -p /etc/chef"
+    config.vm.provision "shell", inline: "apt-get update"
+  # bootstrap run-list. This will be replaced
+  # if a node run list is provided. We run the
+  # ohai cookbook to ensure that the node's
+  # ipaddress is populated with the address
+  # of eth1 and not the default eth0
+  run_list:
+  - recipe[ohai]
 
 stack:
 
-#- node: database
-#  depends_on:
-#  attributes:
-#    server_root_password: passw0rd
-#    server_debian_password: passw0rd
-#  run_list:
-#  - recipe[mysql:server]
-#  knife:
-#    plugin: vagrant
-#    box: ubuntu/trusty64
-#    # Give VM and IP in a private network
-#    subnet: 192.168.50.0/24
+- node: database
+  knife: *knife
+  depends_on:
+  attributes:
+    mysql:
+      server_root_password: *password
+      server_debian_password: *password
+  run_list:
+  - role[wordpress_db]
+  run_on_event: include://[../common/life_cycle_events.yml][wordpress_database][run_on_event]
 
 - node: wordpress
+  knife: *knife
   depends_on:
-#  - database
+  - database
   attributes:
+    build-essential:
+      compile_time: true
     wordpress:
       db:
-        name:
-        host:
-        user:
-        pass:
+        name: wordpress
+        host: nodes[database][0][ipaddress]
+        user: wordpress
+        pass: *password
   run_list:
-  - recipe[mysql:client]
-  - recipe[wordpress]
-  knife:
-    plugin: vagrant
-    box: ubuntu/trusty64
-    # Give VM and IP in a private network
-    subnet: 192.168.50.0/24
+  - role[wordpress_web]
+
+- node: loadbalancer
+  knife: *knife
+  depends_on:
+  - wordpress
+  attributes:
+    haproxy:
+      app_server_role: wordpress_web
+      member_port: 80
+  run_list:
+  - role[wordpress_lb]

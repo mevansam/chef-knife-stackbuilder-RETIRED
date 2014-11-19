@@ -186,7 +186,7 @@ module StackBuilder::Chef
             end
         end
 
-        def upload_cookbooks(cookbook = nil)
+        def upload_cookbooks(cookbook = nil, upload_options = '--no-freeze')
 
             berksfile_path = "#{@repo_path}/Berksfile"
             debug_flag = (@logger.debug? ? ' --debug' : '')
@@ -204,9 +204,9 @@ module StackBuilder::Chef
 
             if cookbook.nil?
                 cmd += "berks install#{debug_flag} --berksfile=#{berksfile_path}; "
-                cmd += "berks upload#{debug_flag} --berksfile=#{berksfile_path} --no-freeze; "
+                cmd += "berks upload#{debug_flag} --berksfile=#{berksfile_path} #{upload_options}; "
             else
-                cmd += "berks upload#{debug_flag} --berksfile=#{berksfile_path} --no-freeze #{cookbook}; "
+                cmd += "berks upload#{debug_flag} --berksfile=#{berksfile_path} #{upload_options} #{cookbook}; "
             end
 
             system(cmd)

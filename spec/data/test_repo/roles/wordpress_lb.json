@@ -1,0 +1,29 @@
+{
+    "name": "wordpress_lb",
+    "description": "Wordpress Haproxy load-balances",
+    "json_class": "Chef::Role",
+    "chef_type": "role",
+    "default_attributes": {
+    },
+    "override_attributes": {
+        "haproxy": {
+            "enable_default_http": false,
+            "listeners": {
+                "frontend": {
+                    "wordpress": [
+                        "bind 0.0.0.0:80",
+                        "maxconn 2000",
+                        "default_backend servers-http"
+                    ]
+                }
+            }
+        }
+    },
+    "run_list": [
+        "recipe[ohai]",
+        "recipe[haproxy::app_lb]",
+        "recipe[haproxy]"
+    ],
+    "env_run_lists": {
+    }
+}

@@ -33,6 +33,17 @@ module StackBuilder::Common
             
         end
 
+        #
+        # Loads a Yaml file and resolves any includes
+        #
+        def load_yaml(file)
+
+            yaml = YAML.load_file(file)
+            check_include(file, yaml)
+
+            yaml
+        end
+
         # 
         # Merges values of keys of to maps
         #        
@@ -235,21 +246,25 @@ module StackBuilder::Common
 
         end
 
-        def run_knife(knife_cmd)
+        #
+        # Helper command to rin Chef knife
+        #
+        def run_knife(knife_cmd, output = StringIO.new, error = StringIO.new)
 
-            error = StringIO.new
-            output = StringIO.new
-
-            knife_cmd.ui = Chef::Knife::UI.new(output, error, STDIN, knife_cmd.config)
+            knife_cmd.ui = Chef::Knife::UI.new(output, error, STDIN, knife_cmd.config) \
+                unless output.nil? && error.nil?
 
             stdout = capture_stdout do
                 knife_cmd.run
             end
-            Config.logger.debug(stdout)
+            Config.logger.debug(stdout) if Config.logger.debug? && !stdout.strip.empty?
 
             output.string
         end
 
+        #
+        # Captures standard out and error to a string
+        #
         def capture_stdout
             # The output stream must be an IO-like object. In this case we capture it in
             # an in-memory IO object so we can return the string value. You can assign any
@@ -264,6 +279,37 @@ module StackBuilder::Common
             $stdout = previous_stdout
             $stderr = previous_stderr
         end
-    end
 
+        private
+
+        def check_include(file, hash)
+
+            hash.each do |k, hval|
+
+                if hval.is_a?(String)
+
+                    if hval.start_with?('include://')
+
+                        lookup_keys = hval.split(/[\[\]]/).reject { |l| l == "include://" || l.empty? }
+                        include_file = lookup_keys.shift
+
+                        yaml = include_file.start_with?('/') ? load_yaml(include_file)
+                            : load_yaml(File.expand_path('../' + include_file, file))
+
+                        hash[k] = lookup_keys.empty? ? yaml
+                            : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
+
+                    elsif hval=~/^ENV\[.*\]$/
+                        hash[k] = eval(hval)
+                    end
+
+                elsif hval.is_a?(Hash)
+                    check_include(file, hval)
+                elsif hval.is_a?(Array)
+                    hval.each { |aval| check_include(file, aval) if aval.is_a?(Hash) }
+                end
+            end
+        end
+
+    end
 end

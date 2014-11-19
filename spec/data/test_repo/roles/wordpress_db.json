@@ -9,7 +9,8 @@
         "env_value": "#{env['ENV_KEY2']}"
     },
     "run_list": [
-        "recipe[mysql]"
+        "recipe[ohai]",
+        "recipe[mysql::server]"
     ],
     "env_run_lists": {
     }

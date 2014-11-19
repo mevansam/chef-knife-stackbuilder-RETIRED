@@ -10,6 +10,8 @@ module StackBuilder::Stack
 
         attr_accessor :scale
         attr_accessor :prev_scale
+
+        attr_accessor :deleted
         
         attr_reader :counter
         attr_reader :parent_nodes
@@ -32,7 +34,7 @@ module StackBuilder::Stack
             
             @name = node_config['node']
             @attributes = (node_config.has_key?('attributes') ? node_config['attributes'] : { })
-            @on_events = (node_config.has_key?('on_events') ? node_config['on_events'] : [ ])
+            # @on_events = (node_config.has_key?('on_events') ? node_config['on_events'] : [ ])
 
             if node_config.has_key?('targets')
 
@@ -62,6 +64,8 @@ module StackBuilder::Stack
 
             @node_mutex = Mutex.new
             @resource_sync = [ ]
+
+            @deleted = false
         end
 
         def add_dependency(node_name, is_target = false)
@@ -161,7 +165,7 @@ module StackBuilder::Stack
                     end
                 end
 
-                if @scale > current_scale
+                if @scale > current_scale && !@deleted
 
                     @logger.debug("Scaling #{self} from #{current_scale} up to #{@scale}")
 
@@ -207,7 +211,7 @@ module StackBuilder::Stack
 
             threads = [ ]
 
-            scale = @scale
+            scale = (@deleted ? @manager.get_scale : @scale)
             if scale > 0
 
                 if @sync == "first"

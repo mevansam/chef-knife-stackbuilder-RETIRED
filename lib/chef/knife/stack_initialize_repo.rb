@@ -46,7 +46,7 @@ class Chef
                 StackBuilder::Chef::Repo.new(
                     repo_path,
                     cert_path.nil? ? certs : cert_path,
-                    config[:stack_envs],
+                    config[:envs],
                     config[:cookbooks] )
             end
         end
