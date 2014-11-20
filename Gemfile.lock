@@ -1,13 +1,14 @@
+GIT
+  remote: https://github.com/mevansam/knife-vagrant2.git
+  revision: 9fe662951816396c38580af2e40c79005bd3b22c
+  specs:
+    knife-vagrant2 (0.0.5)
+      chef (>= 0.10.10)
+
 PATH
   remote: .
   specs:
     knife-stackbuilder (0.0.1)
-
-PATH
-  remote: /Users/msamaratunga/Work/community/chef/knife-vagrant2
-  specs:
-    knife-vagrant2 (0.0.5)
-      chef (>= 0.10.10)
 
 GEM
   remote: https://rubygems.org/

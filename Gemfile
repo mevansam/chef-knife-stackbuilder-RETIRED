@@ -11,8 +11,7 @@ gem 'berkshelf'
 gem 'highline'
 
 gem 'knife-attribute'
-#gem 'knife-vagrant2', :git => 'https://github.com/mevansam/knife-vagrant2.git'
-gem 'knife-vagrant2', :path => '/Users/msamaratunga/Work/community/chef/knife-vagrant2'
+gem 'knife-vagrant2', :git => 'https://github.com/mevansam/knife-vagrant2.git'
 
 group :development, :test do
 
