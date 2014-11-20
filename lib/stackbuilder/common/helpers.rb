@@ -249,17 +249,38 @@ module StackBuilder::Common
         #
         # Helper command to rin Chef knife
         #
-        def run_knife(knife_cmd, output = StringIO.new, error = StringIO.new)
+        def run_knife(knife_cmd, retries = 0, output = StringIO.new, error = StringIO.new)
 
             knife_cmd.ui = Chef::Knife::UI.new(output, error, STDIN, knife_cmd.config) \
                 unless output.nil? && error.nil?
 
-            stdout = capture_stdout do
-                knife_cmd.run
-            end
-            Config.logger.debug(stdout) if Config.logger.debug? && !stdout.strip.empty?
+            run = true
+            while run
 
-            output.string
+                begin
+                    stdout = capture_stdout do
+                        knife_cmd.run
+                    end
+                    Config.logger.debug(stdout) if Config.logger.debug? && !stdout.strip.empty?
+                    run = false
+
+                rescue Exception => msg
+
+                    if retries==0
+                        @logger.debug(msg.backtrace.join("\n\t")) if Config.logger.debug?
+                        raise msg
+                    end
+
+                    @logger.debug(msg.backtrace.join("\n\t")) if Config.logger.debug?
+                    @logger.debug("Knife command #{knife_cmd} failed. Retrying after 2s.")
+
+                    sleep 2
+                    retries -= 1
+                end
+            end
+
+            result = output.string
+            result.empty? && !stdout.empty? ? stdout : result
         end
 
         #

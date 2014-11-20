@@ -16,8 +16,19 @@ describe StackBuilder::Chef do
         @stack_ids = { :dev => 'DEV', :test => 'TEST', :prod => 'PROD' }
 
         # Get VBox to start host only network for 192.168.50.0/24
-        # network = `VBoxManage list hostonlyifs | grep -B 3 192.168.50.1 | awk '/Name:/ { print $2 }'`.chomp
-        # `sudo ifconfig #{network} up`
+        # and set vbox host ip where chef will be reachable
+        network = `VBoxManage list hostonlyifs | grep -B 3 192.168.50.1 | awk '/Name:/ { print $2 }'`.chomp
+
+        if network.empty?
+            puts 'A virtual box host only network for 192.168.50.0/24 subnet does not exist.'
+            exit 1
+        end
+
+        `VBoxManage hostonlyif ipconfig #{network} --ip 192.168.50.1`
+
+        # This requires passwordless sudo to be enabled
+        `sudo ifconfig #{network} down`
+        `sudo ifconfig #{network} up`
     end
 
     after(:all) do
@@ -98,9 +109,9 @@ describe StackBuilder::Chef do
     it "should build a DEV stack" do
 
         stack = StackBuilder::Stack::Stack.new(
-                StackBuilder::Chef::NodeProvider.new,
-                @test_data_path + '/test_repo/stacks/stack1.yml',
-                @stack_ids[:dev] )
+            StackBuilder::Chef::NodeProvider.new,
+            @test_data_path + '/test_repo/stacks/stack1.yml',
+            @stack_ids[:dev] )
 
         stack.orchestrate
         validate_nodes(['database-DEV-0', 'wordpress-DEV-0', 'loadbalancer-DEV-0'])
@@ -109,9 +120,9 @@ describe StackBuilder::Chef do
     it "should scale the DEV stack web tier" do
 
         stack = StackBuilder::Stack::Stack.new(
-                StackBuilder::Chef::NodeProvider.new,
-                @test_data_path + '/test_repo/stacks/stack1.yml',
-                @stack_ids[:dev] )
+            StackBuilder::Chef::NodeProvider.new,
+            @test_data_path + '/test_repo/stacks/stack1.yml',
+            @stack_ids[:dev] )
 
         stack.scale('wordpress', 2)
         validate_nodes(['database-DEV-0', 'wordpress-DEV-0', 'wordpress-DEV-1', 'loadbalancer-DEV-0'])
@@ -120,9 +131,9 @@ describe StackBuilder::Chef do
     it "should destroy the DEV stack" do
 
         stack = StackBuilder::Stack::Stack.new(
-                StackBuilder::Chef::NodeProvider.new,
-                @test_data_path + '/test_repo/stacks/stack1.yml',
-                @stack_ids[:dev] )
+            StackBuilder::Chef::NodeProvider.new,
+            @test_data_path + '/test_repo/stacks/stack1.yml',
+            @stack_ids[:dev] )
 
         stack.destroy
 
@@ -131,4 +142,50 @@ describe StackBuilder::Chef do
         expect(node_list.empty?).to be_truthy
     end
 
+    it "should build TEST stack" do
+
+        stack = StackBuilder::Stack::Stack.new(
+            StackBuilder::Chef::NodeProvider.new,
+            @test_data_path + '/test_repo/stacks/stack2.yml',
+            @stack_ids[:test] )
+
+        stack.orchestrate
+
+        knife_cmd = Chef::Knife::NodeList.new
+        node_list = run_knife(knife_cmd).split
+        expect(node_list).to include('test-TEST-0')
+
+        knife_cmd = Chef::Knife::VagrantServerList.new
+        knife_cmd.config[:vagrant_dir] = File.join(Dir.home, '/.vagrant')
+        server_list = run_knife(knife_cmd)
+        expect(server_list.lines.keep_if { |l| l=~/test-TEST-0/ }.first.chomp.end_with?('running')).to be_truthy
+
+        knife_cmd = Chef::Knife::Ssh.new
+        knife_cmd.name_args = [ 'name:test-TEST-0', "sudo sh -c '[ -e ~/stack_configured ] && echo yes'" ]
+
+        knife_cmd.config[:attribute] = 'ipaddress'
+        knife_cmd.config[:ssh_user] = 'vagrant'
+        knife_cmd.config[:identity_file] = Dir.home + '/.vagrant/insecure_key'
+        result = run_knife(knife_cmd).chomp
+        expect(result[/\d+\.\d+\.\d+\.\d+ (\w+)/, 1]).to eq('yes')
+    end
+
+    it "should destroy TEST stack" do
+
+        stack = StackBuilder::Stack::Stack.new(
+                StackBuilder::Chef::NodeProvider.new,
+                @test_data_path + '/test_repo/stacks/stack2.yml',
+                @stack_ids[:test] )
+
+        stack.destroy
+
+        knife_cmd = Chef::Knife::NodeList.new
+        node_list = run_knife(knife_cmd).split
+        expect(node_list).to_not include('test-TEST-0')
+
+        knife_cmd = Chef::Knife::VagrantServerList.new
+        knife_cmd.config[:vagrant_dir] = File.join(Dir.home, '/.vagrant')
+        server_list = run_knife(knife_cmd)
+        expect(server_list.lines.keep_if { |l| l=~/test-TEST-0/ }.empty?).to be_truthy
+    end
 end

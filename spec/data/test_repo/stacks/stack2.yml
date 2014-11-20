@@ -1,41 +1,49 @@
 ---
 # Stack
-name: Stack2
-environment: TEST
+name: Stack1
+
+environment: DEV
+chef_server_url: http://192.168.50.1:9999
+
+knife: &knife
+  options:
+    identity_file: ~/.vagrant/insecure_key
+    host_key_verify: false
+    ssh_user: vagrant
+    ssh_port: 22
+    sudo: true
+  create:
+    class: Chef::Knife::VagrantServerCreate
+    name_key: chef_node_name
+    options:
+      vagrant_dir: ~/.vagrant
+      provider: virtualbox
+      box: chef/ubuntu-14.04
+      box_url: https://vagrantcloud.com/chef/boxes/ubuntu-14.04
+      memsize: 512
+      subnet: 192.168.50.0/24
+      port_forward: {}
+      share_folders: []
+      use_cachier: false
+      distro: chef-full
+      inline_config: |
+        config.ohai.enable = true
+        config.ohai.primary_nic = "eth1"
+        config.vm.provision "shell", inline: "mkdir -p /etc/chef"
+        config.vm.provision "shell", inline: "apt-get update"
+      run_list:
+      - recipe[ohai]
+  delete:
+    class: Chef::Knife::VagrantServerDelete
+    options:
+      vagrant_dir: ~/.vagrant
+      "yes": true
 
 stack:
-- node: server1
+
+- node: test
+  knife: *knife
   depends_on:
-  type: type1
-  run_list:
-  host:
-    name: host1
-    domain: $DOMAIN
-    ip:
-    knife:
-      plugin:
-      args:
-
-- node: server2
-  depends_on: server1
-  type: type1
-  run_list:
-  host:
-    name: host1
-    domain: $DOMAIN
-    ip:
-    knife:
-      plugin:
-      args:
-
-- node: server2
-  depends_on: server1
-  type: type2
-  run_list:
-  host:
-    name: host1
-    domain: $DOMAIN
-    ip:
-    knife:
-      plugin:
-      args:
+  attributes:
+  run_on_event:
+    configure: touch ~/stack_configured

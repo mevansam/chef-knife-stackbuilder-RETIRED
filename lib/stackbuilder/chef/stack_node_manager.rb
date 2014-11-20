@@ -4,7 +4,7 @@ include StackBuilder::Common::Helpers
 
 module StackBuilder::Chef
 
-    class HostNodeManager < StackBuilder::Stack::NodeManager
+    class NodeManager < StackBuilder::Stack::NodeManager
 
         include ERB::Util
 
@@ -18,10 +18,10 @@ module StackBuilder::Chef
             @name = node_config['node']
             @node_id = @name + '-' + @id
 
-            @run_list = node_config['run_list'].join(',')
+            @run_list = node_config.has_key?('run_list') ? node_config['run_list'].join(',') : nil
             @run_on_event = node_config['run_on_event']
 
-            @knife_options = node_config['knife']
+            @knife_config = node_config['knife']
         end
 
         def get_name
@@ -40,7 +40,7 @@ module StackBuilder::Chef
         def create(index)
 
             name = "#{@node_id}-#{index}"
-            self.create_vm(name, @knife_options)
+            self.create_vm(name, @knife_config)
 
             knife_cmd = KnifeAttribute::Node::NodeAttributeSet.new
             knife_cmd.name_args = [ name, 'stack_id', @id ]
@@ -52,12 +52,14 @@ module StackBuilder::Chef
             knife_cmd.config[:type] = 'override'
             run_knife(knife_cmd)
 
-            knife_cmd = Chef::Knife::NodeRunListSet.new
-            knife_cmd.name_args = [ name, @run_list ]
-            run_knife(knife_cmd)
+            unless @run_list.nil?
+                knife_cmd = Chef::Knife::NodeRunListSet.new
+                knife_cmd.name_args = [ name, @run_list ]
+                run_knife(knife_cmd)
+            end
         end
 
-        def create_vm(name, knife_options)
+        def create_vm(name, knife_config)
             raise NotImplemented, 'HostNodeManager.create_vm'
         end
 
@@ -65,7 +67,7 @@ module StackBuilder::Chef
 
             name = "#{@node_id}-#{index}"
 
-            if events.include?('update')
+            if events.include?('update') && !@run_list.nil?
                 knife_cmd = Chef::Knife::NodeRunListSet.new
                 knife_cmd.name_args = [ name, @run_list ]
                 run_knife(knife_cmd)
@@ -99,7 +101,7 @@ module StackBuilder::Chef
         def delete(index)
 
             name = "#{@node_id}-#{index}"
-            self.delete_vm(name, @knife_options)
+            self.delete_vm(name, @knife_config)
 
             knife_cmd = Chef::Knife::NodeDelete.new
             knife_cmd.name_args = [ name ]
@@ -112,8 +114,21 @@ module StackBuilder::Chef
             run_knife(knife_cmd)
         end
 
-        def delete_vm(name, knife_options)
+        def delete_vm(name, knife_config)
             raise NotImplemented, 'HostNodeManager.delete_vm'
+        end
+
+        def config_knife(knife_cmd, options)
+
+            options.each_pair do |k, v|
+
+                arg = k.gsub(/-/, '_')
+
+                # Fix issue where '~/' is not expanded to home dir
+                v.gsub!(/~\//, Dir.home + '/') if arg.end_with?('_dir') && v.start_with?('~/')
+
+                knife_cmd.config[arg.to_sym] = v
+            end
         end
 
         private
@@ -149,7 +164,7 @@ module StackBuilder::Chef
 
         def knife_ssh(name, cmd)
 
-            sudo = @knife_options['sudo'] ? 'sudo ' : ''
+            sudo = @knife_config['options']['sudo'] ? 'sudo ' : ''
             ssh_cmd = sudo + cmd
 
             @logger.debug("Running '#{ssh_cmd}' on node 'name:#{name}'.")
@@ -158,15 +173,12 @@ module StackBuilder::Chef
             knife_cmd.name_args = [ "name:#{name}", ssh_cmd ]
             knife_cmd.config[:attribute] = 'ipaddress'
 
-            @knife_options.each_pair do |k, v|
-                arg = k.gsub(/-/, '_')
-                knife_cmd.config[arg.to_sym] = v
-            end
+            config_knife(knife_cmd, @knife_config['options'] || { })
 
             if @logger.info
                 output = StackBuilder::Common::TeeIO.new($stdout)
                 error = StackBuilder::Common::TeeIO.new($stderr)
-                run_knife(knife_cmd, output, error)
+                run_knife(knife_cmd, 0, output, error)
             else
                 run_knife(knife_cmd)
             end

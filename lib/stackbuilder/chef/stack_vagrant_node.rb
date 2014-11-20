@@ -4,9 +4,9 @@ include StackBuilder::Common::Helpers
 
 module StackBuilder::Chef
 
-    class VagrantNodeManager < StackBuilder::Chef::HostNodeManager
+    class VagrantNodeManager < StackBuilder::Chef::NodeManager
 
-        def create_vm(name, knife_options)
+        def create_vm(name, knife_config)
 
             knife_cmd = Chef::Knife::VagrantServerCreate.new
 
@@ -28,12 +28,7 @@ module StackBuilder::Chef
             knife_cmd.config[:ssh_user] = 'vagrant'
             knife_cmd.config[:ssh_port] = '22'
 
-            # Override above values from options provided in stack file
-            knife_options.each_pair do |k, v|
-                arg = k.gsub(/-/, '_')
-                knife_cmd.config[arg.to_sym] = v
-            end
-
+            config_knife(knife_cmd, knife_config['options'] || { })
             run_knife(knife_cmd)
 
         rescue Exception => msg
@@ -43,24 +38,33 @@ module StackBuilder::Chef
             raise msg
         end
 
-        def delete_vm(name, knife_options)
+        def delete_vm(name, knife_config)
 
-            knife_cmd = Chef::Knife::VagrantServerDelete.new if @logger.debug
+            knife_cmd = Chef::Knife::VagrantServerDelete.new
             knife_cmd.name_args = [ name ]
             knife_cmd.config[:yes] = true
             knife_cmd.config[:vagrant_dir] = File.join(Dir.home, '/.vagrant')
 
-            Vagrant knife plugin delete is single threaded
-            @@sync ||= Mutex.new
-            @@sync.synchronize {
-                run_knife(knife_cmd)
-            }
+            run_knife(knife_cmd, 3)
 
         rescue Exception => msg
-            puts("Fatal Error deleting vm #{name}: #{msg}")
-            @logger.info(msg.backtrace.join("\n\t")) if @logger.debug
 
-            raise msg
+            if Dir.exist?(knife_cmd.config[:vagrant_dir] + '/' + name)
+
+                knife_cmd = Chef::Knife::VagrantServerList.new
+                knife_cmd.config[:vagrant_dir] = File.join(Dir.home, '/.vagrant')
+                server_list = run_knife(knife_cmd)
+
+                if server_list.lines.keep_if { |l| l=~/test-TEST-0/ }.first.chomp.end_with?('running')
+
+                    puts("Fatal Error deleting vm #{name}: #{msg}")
+                    @logger.info(msg.backtrace.join("\n\t"))
+
+                    raise msg
+                else
+                    FileUtils.rm_rf(knife_cmd.config[:vagrant_dir] + '/' + name)
+                end
+            end
         end
     end
 end
