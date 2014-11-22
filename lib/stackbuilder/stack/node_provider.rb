@@ -10,6 +10,10 @@ module StackBuilder::Stack
             raise NotImplemented, 'NodeProvider.set_stack_id'
         end
 
+        def get_env_vars
+            return { }
+        end
+
         def get_node_manager(node_config)
             raise NotImplemented, 'NodeProvider.get_node_manager'
         end

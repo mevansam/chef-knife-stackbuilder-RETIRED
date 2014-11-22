@@ -51,7 +51,7 @@ stack:
       server_debian_password: *password
   run_list:
   - role[wordpress_db]
-  run_on_event: include://[../common/life_cycle_events.yml][wordpress_database][run_on_event]
+  run_on_event: <<+[../common/life_cycle_events.yml][wordpress_database][run_on_event]
 
 - node: wordpress
   knife: *knife

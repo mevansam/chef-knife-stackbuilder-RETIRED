@@ -36,12 +36,58 @@ module StackBuilder::Common
         #
         # Loads a Yaml file and resolves any includes
         #
-        def load_yaml(file)
+        def load_yaml(file, env_vars)
 
             yaml = YAML.load_file(file)
-            check_include(file, yaml)
+            eval_map_values(yaml, env_vars, file)
+        end
 
-            yaml
+        #
+        # Evaluates map values against the
+        # given map of environment variables
+        #
+        def eval_map_values(v, env, file = nil)
+
+            if v.is_a?(String)
+
+                if v=~/#\{.*\}/
+                    return eval("\"#{v}\"")
+
+                elsif v.start_with?('<<')
+
+                    k1 = v[/<<(\w*)[\*\$\+]/,1]
+                    env_val = ENV[k1]
+
+                    i = k1.length + 3
+                    k2 = v[i,v.length-i]
+
+                    case v[i-1]
+
+                        when '*'
+                            return env_val || ask(k2) { |q| q.echo = "*" }.to_s
+
+                        when '$'
+                            return env_val || ask(k2).to_s
+
+                        when '+'
+                            lookup_keys = (env_val || k2).split(/[\[\]]/).reject { |k| k.empty? }
+
+                            key = lookup_keys.shift
+                            include_file = key.start_with?('/') || key.nil? ? key : File.expand_path('../' + key, file)
+
+                            yaml = load_yaml(include_file, env)
+                            return lookup_keys.empty? ? yaml
+                                : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
+                    end
+                end
+
+            elsif v.is_a?(Hash)
+                v.each_pair { |k,vv| v[k] = eval_map_values(vv, env, file) }
+            elsif v.is_a?(Array)
+                v.map! { |vv| eval_map_values(vv, env, file) }
+            end
+
+            v
         end
 
         # 
@@ -87,29 +133,6 @@ module StackBuilder::Common
                 else
                     map1[k] = v2
                 end 
-            end
-        end
-
-        #
-        # Evaluates map values against the
-        # given map of environment variables
-        #
-        def eval_map_values(map, env)
-
-            map.each_key do |k|
-
-                v = map[k]
-
-                if v.is_a?(String)
-                    map[k] = eval("\"#{v}\"")
-
-                elsif v.is_a?(Array)
-                    map[k] =  v.map { |vv| eval("\"#{vv}\"") }
-
-                elsif v.is_a?(Hash)
-                    eval_map_values(v, env)
-
-                end
             end
         end
 
@@ -299,37 +322,6 @@ module StackBuilder::Common
             # Restore the previous value of stderr (typically equal to STDERR).
             $stdout = previous_stdout
             $stderr = previous_stderr
-        end
-
-        private
-
-        def check_include(file, hash)
-
-            hash.each do |k, hval|
-
-                if hval.is_a?(String)
-
-                    if hval.start_with?('include://')
-
-                        lookup_keys = hval.split(/[\[\]]/).reject { |l| l == "include://" || l.empty? }
-                        include_file = lookup_keys.shift
-
-                        yaml = include_file.start_with?('/') ? load_yaml(include_file)
-                            : load_yaml(File.expand_path('../' + include_file, file))
-
-                        hash[k] = lookup_keys.empty? ? yaml
-                            : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
-
-                    elsif hval=~/^ENV\[.*\]$/
-                        hash[k] = eval(hval)
-                    end
-
-                elsif hval.is_a?(Hash)
-                    check_include(file, hval)
-                elsif hval.is_a?(Array)
-                    hval.each { |aval| check_include(file, aval) if aval.is_a?(Hash) }
-                end
-            end
         end
 
     end

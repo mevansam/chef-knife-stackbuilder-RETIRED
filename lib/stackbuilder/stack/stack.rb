@@ -19,8 +19,12 @@ module StackBuilder::Stack
                 StackBuilder::Stack::NodeProvider." unless provider.is_a?(NodeProvider)
 
             @provider = provider
+            env_vars = provider.get_env_vars
 
-            stack = StackBuilder::Common.load_yaml(stack_file)
+            stack = StackBuilder::Common.load_yaml(stack_file, env_vars)
+            @logger.debug("Initializing stack definition:\n #{stack.to_yaml}")
+
+            overrides = JSON.load(File.new(overrides, 'r')) unless overrides.nil? || !overrides.end_with?('.json')
             merge_maps(stack, overrides) unless overrides.nil?
 
             if id.nil?
@@ -90,7 +94,19 @@ module StackBuilder::Stack
             end
         end
 
-        def orchestrate(events = nil, name = nil)
+        def orchestrate(events = nil, name = nil, scale = nil)
+
+            events = Set.new([ "configure" ]) if events.nil?
+
+            unless name.nil?
+                node = @nodes[name]
+                raise StackBuilder::Common::StackBuilderError, "Invalid node name \"#{name}'\"." if node.nil?
+
+                unless scale.nil?
+                    raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if scale < 1
+                    node.scale = scale
+                end
+            end
 
             prep_threads = [ ]
             execution_list = [ ]
@@ -170,21 +186,9 @@ module StackBuilder::Stack
             raise StackBuilder::Common::StackBuilderError, "Processing of stack nodes " +
                 "did not complete because of errors." if execution_count < task_count
         end
-        
-        def scale(name, scale, events = nil)
-            
-            node = @nodes[name]
 
-            raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if scale < 1
-            raise StackBuilder::Common::StackBuilderError, "Invalid node name \"#{name}'\"." if node.nil?
-
-            node.scale = scale
-
-            if events.nil?
-                self.orchestrate(Set.new([ "configure" ]), name)
-            else
-                self.orchestrate(events, name)
-            end
+        def scale(name, scale)
+            self.orchestrate(nil, name, scale)
         end
 
         def destroy

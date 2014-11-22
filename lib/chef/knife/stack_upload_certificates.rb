@@ -9,20 +9,28 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            banner "knife stack upload certificates REPO_PATH (options)"
+            banner "knife stack upload certificates"
 
-            option :env,
-                   :long => "--env ENVIRONMENT",
-                   :description => "Environment to upload/update"
+            option :repo_path,
+                :long => "--repo_path REPO_PATH",
+                :description => "The path to the Chef Berkshelf repo. All the " +
+                    "certificates associated with this repository would have " +
+                    "been copied to a hidden folder '.certs' within this path " +
+                    "when it was initialized.",
+                :default => './'
 
             option :server,
-                   :long => "--server NAME",
-                   :description => "The name of the server whose " +
-                        "certificate is to be uploaded"
+                :long => "--server NAME",
+                :description => "The name of the server whose " +
+                    "certificate is to be uploaded"
 
             def run
-                repo = StackBuilder::Chef::Repo.new(get_repo_path(name_args))
-                repo.upload_certificates(config[:env], config[:server])
+                StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
+
+                environment = config[:environment]
+
+                repo = StackBuilder::Chef::Repo.new(config[:repo_path])
+                repo.upload_certificates(environment, config[:server])
             end
         end
 

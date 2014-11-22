@@ -10,7 +10,7 @@ module StackBuilder::Chef
 
         attr_accessor :name
 
-        def initialize(id, node_config)
+        def initialize(id, node_config, repo_path, environment)
 
             @logger = StackBuilder::Common::Config.logger
 
@@ -22,6 +22,23 @@ module StackBuilder::Chef
             @run_on_event = node_config['run_on_event']
 
             @knife_config = node_config['knife']
+
+            raise ArgumentError, 'An ssh user needs to be provided for bootstrap and knife ssh.' \
+                unless @knife_config['options'].has_key?('ssh_user')
+
+            raise ArgumentError, 'An ssh key file or password must be provided for knife to be able ssh to a node.' \
+                unless @knife_config['options'].has_key?('identity_file') ||
+                   @knife_config['options'].has_key?('ssh_password')
+
+            @ssh_user = @knife_config['options']['ssh_user']
+            @ssh_password = @knife_config['options']['ssh_password']
+            @identity_file = @knife_config['options']['identity_file']
+
+            @repo_path = repo_path
+            @environment = environment
+
+            @env_key_file = "#{@repo_path}/secrets/#{@environment}"
+            @env_key_file = nil unless File.exist?(@env_key_file)
         end
 
         def get_name
@@ -56,6 +73,11 @@ module StackBuilder::Chef
                 knife_cmd = Chef::Knife::NodeRunListSet.new
                 knife_cmd.name_args = [ name, @run_list ]
                 run_knife(knife_cmd)
+            end
+
+            unless @env_key_file.nil?
+                env_key = IO.read(@env_key_file)
+                knife_ssh(name, "sh -c \"echo \\\"#{env_key}\\\" > /etc/chef/encrypted_data_bag_secret\"")
             end
         end
 
@@ -175,7 +197,7 @@ module StackBuilder::Chef
 
             config_knife(knife_cmd, @knife_config['options'] || { })
 
-            if @logger.info
+            if @logger.info?
                 output = StackBuilder::Common::TeeIO.new($stdout)
                 error = StackBuilder::Common::TeeIO.new($stderr)
                 run_knife(knife_cmd, 0, output, error)
@@ -183,5 +205,6 @@ module StackBuilder::Chef
                 run_knife(knife_cmd)
             end
         end
+
     end
 end

@@ -72,7 +72,7 @@ describe StackBuilder::Chef do
         expect(repo.stacks).to match_array([ 'Stack1', 'Stack2', 'Stack3' ])
 
         knife_cmd = Chef::Knife::StackUploadEnvironments.new
-        knife_cmd.name_args = [ @repo_path ]
+        knife_cmd.config[:repo_path] = @repo_path
         run_knife(knife_cmd)
 
         env_data = { }
@@ -95,7 +95,7 @@ describe StackBuilder::Chef do
     it "should load an existing repository's certificates as data-bags" do
 
         knife_cmd = Chef::Knife::StackUploadCertificates.new
-        knife_cmd.name_args = [ @repo_path ]
+        knife_cmd.config[:repo_path] = @repo_path
         run_knife(knife_cmd)
 
         repo = StackBuilder::Chef::Repo.new(@repo_path)
@@ -124,7 +124,7 @@ describe StackBuilder::Chef do
     it "should load an existing repository's data-bags" do
 
         knife_cmd = Chef::Knife::StackUploadDataBags.new
-        knife_cmd.name_args = [ @repo_path ]
+        knife_cmd.config[:repo_path] = @repo_path
         run_knife(knife_cmd)
 
         repo = StackBuilder::Chef::Repo.new(@repo_path)
@@ -169,7 +169,7 @@ describe StackBuilder::Chef do
     it "should upload cookbooks from the repo's Berksfile" do
 
         knife_cmd = Chef::Knife::StackUploadCookbooks.new
-        knife_cmd.name_args = [ @repo_path ]
+        knife_cmd.config[:repo_path] = @repo_path
         knife_cmd.config[:berks_options] = '--force,--no-freeze'
         run_knife(knife_cmd)
 
@@ -189,7 +189,7 @@ describe StackBuilder::Chef do
         ENV['ENV_KEY2'] = "env_value2"
 
         knife_cmd = Chef::Knife::StackUploadRoles.new
-        knife_cmd.name_args = [ @repo_path ]
+        knife_cmd.config[:repo_path] = @repo_path
         run_knife(knife_cmd)
 
         knife_cmd = Chef::Knife::RoleList.new

@@ -9,7 +9,13 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            banner 'knife stack initialize repo REPO_PATH (options)'
+            banner 'knife stack initialize repo (options)'
+
+            option :repo_path,
+                :long => "--repo_path REPO_PATH",
+                :description => "The path where a skeleton Chef Berkshelf repo will be created. " +
+                    "If this is no provided the current working directory will be initialized.",
+                :default => './'
 
             option :cert_path,
                 :long => "--cert_path CERT_PATH",
@@ -33,7 +39,8 @@ class Chef
                     "added to the Berksfile i.e. \"mysql:=5.6.1, wordpress:~> 2.3.0\""
 
             def run
-                repo_path = get_repo_path(name_args)
+                StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
+
                 cert_path = config[:cert_path]
                 certs = config[:certs]
 
@@ -44,7 +51,7 @@ class Chef
                 end
 
                 StackBuilder::Chef::Repo.new(
-                    repo_path,
+                    config[:repo_path],
                     cert_path.nil? ? certs : cert_path,
                     config[:envs],
                     config[:cookbooks] )

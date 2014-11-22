@@ -22,16 +22,6 @@ class Chef
                 end
             end
 
-            def get_repo_path(name_args)
-                unless name_args.size == 1
-                    puts "You need specify the path of the repo to create!"
-                    show_usage
-                    exit 1
-                end
-
-                repo_path = name_args.first
-            end
-
         end
     end
 end

@@ -15,6 +15,7 @@ require 'json'
 require 'openssl'
 require "net/ssh"
 require "net/ssh/multi"
+require "highline/import"
 
 require 'chef'
 require 'chef/knife'

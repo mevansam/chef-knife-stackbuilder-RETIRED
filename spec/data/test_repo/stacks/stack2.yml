@@ -2,7 +2,7 @@
 # Stack
 name: Stack1
 
-environment: DEV
+environment: TEST
 chef_server_url: http://192.168.50.1:9999
 
 knife: &knife

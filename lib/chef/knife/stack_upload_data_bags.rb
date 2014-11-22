@@ -9,19 +9,26 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            banner "knife stack upload data bags REPO_PATH (options)"
+            banner "knife stack upload data bags (options)"
 
-            option :env,
-               :long => "--env ENVIRONMENT",
-               :description => "Environment to upload/update"
+            option :repo_path,
+                :long => "--repo_path REPO_PATH",
+                :description => "The path to the Chef repo containing the data_bags " +
+                    "within a 'data_bags' folder. All data bags will be encrypted with " +
+                    "keys per environment located in the 'secrets' folder of the repo.",
+                :default => './'
 
             option :data_bag,
-               :long => "--data_bag NAME",
-               :description => "The data bag to upload/update"
+                :long => "--data_bag NAME",
+                :description => "The data bag to upload/update"
 
             def run
-                repo = StackBuilder::Chef::Repo.new(get_repo_path(name_args))
-                repo.upload_databags(config[:env], config[:data_bag])
+                StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
+
+                environment = config[:environment]
+
+                repo = StackBuilder::Chef::Repo.new(config[:repo_path])
+                repo.upload_data_bags(environment, config[:data_bag])
             end
         end
 

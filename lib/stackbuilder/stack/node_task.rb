@@ -283,20 +283,14 @@ module StackBuilder::Stack
                             target_manager.name, i, @name) unless @logger.debug?
                     end
 
-                    if events.nil?
-                        # Always run default events for node building. The idempotent nature of Chef
-                        # should ensure that if the VM is consistent then the recipe will be a noop
-                        orchestrate_events = Set.new([ "create", "install", "configure" ])
-                        @logger.debug("Events for node VM #{name} / #{i} build: #{orchestrate_events.collect { |e| e }.join(", ")}")
-                    else
-                        # If no scale up occurs then run chef roles only for the given event.
-                        orchestrate_events = events.clone
-                        # If new VMs have been added to the cluster to scale up then add default events for the new VM.
+                    # If no scale up occurs then run only the given events.
+                    orchestrate_events = events.clone
+                    # If new VMs have been added to the cluster to scale up then add default events for the new VM.
+                    orchestrate_events = orchestrate_events.merge([ "create", "install", "configure" ]) \
                         if i >= prev_scale
-                            orchestrate_events = orchestrate_events.merge([ "create", "install", "configure" ])
-                            @logger.debug("Events for node VM #{name} / #{i} build: #{orchestrate_events.collect { |e| e }.join(", ")}")
-                        end
-                    end
+
+                    @logger.debug("Events for node #{name} / #{i} build: " +
+                        "#{orchestrate_events.collect { |e| e } .join(", ")}") if @logger.debug?
 
                     @manager.process(i, orchestrate_events, parse_attributes(@attributes, i), target_manager)
 

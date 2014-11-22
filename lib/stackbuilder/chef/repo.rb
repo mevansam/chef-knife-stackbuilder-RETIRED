@@ -18,7 +18,7 @@ module StackBuilder::Chef
                 'cookbooks',
                 'environments',
                 'secrets',
-                'databags',
+                'data_bags',
                 'roles',
                 'stacks'
             ]
@@ -110,13 +110,13 @@ module StackBuilder::Chef
             end
         end
 
-        def upload_certificates(server = nil, environment = nil)
+        def upload_certificates(environment = nil, server = nil)
 
             knife_cmd = Chef::Knife::DataBagList.new
             data_bag_list = run_knife(knife_cmd).split
 
             # Create environment specific data bags to hold certificates
-            environments.each do |env_name|
+            @environments.each do |env_name|
 
                 data_bag_env = 'certificates-' + env_name
                 unless data_bag_list.include?(data_bag_env)
@@ -151,14 +151,14 @@ module StackBuilder::Chef
             end
         end
 
-        def upload_databags(environment = nil, data_bag = nil)
+        def upload_data_bags(environment = nil, data_bag = nil)
 
             environments = (environment.nil? ? @environments : [ environment ])
 
             knife_cmd = Chef::Knife::DataBagList.new
             data_bag_list = run_knife(knife_cmd).split
 
-            Dir["#{@repo_path}/databags/*"].each do |data_bag_dir|
+            Dir["#{@repo_path}/data_bags/*"].each do |data_bag_dir|
 
                 data_bag_name = data_bag_dir[/\/(\w+)$/, 1]
                 if data_bag.nil? || data_bag==data_bag_name
@@ -172,7 +172,10 @@ module StackBuilder::Chef
                             run_knife(knife_cmd)
                         end
 
-                        env_vars = YAML.load_file("#{@repo_path}/etc/#{env_name}.yml")
+                        env_file = "#{@repo_path}/etc/#{env_name}.yml"
+                        env_vars = File.exist?(env_file) ?
+                            YAML.load_file("#{@repo_path}/etc/#{env_name}.yml") : { }
+
                         merge_maps(env_vars, ENV)
 
                         secret = get_secret(env_name)
@@ -377,7 +380,7 @@ module StackBuilder::Chef
 
             Dir["#{path}/*.json"].each do |data_bag_file|
 
-                data_bag_item = eval_map_values(JSON.load(File.new(data_bag_file, 'r')), env_vars)
+                data_bag_item = eval_map_values(JSON.load(File.new(data_bag_file, 'r')), env_vars, data_bag_file)
 
                 data_bag_item_name = data_bag_file[/\/(\w+).json$/, 1]
                 tmpfile = "#{Dir.tmpdir}/#{data_bag_item_name}.json"

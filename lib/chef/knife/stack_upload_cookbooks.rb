@@ -9,18 +9,25 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            banner 'knife stack upload cookbooks REPO_PATH (options)'
+            banner 'knife stack upload cookbooks (options)'
+
+            option :repo_path,
+                :long => "--repo_path REPO_PATH",
+                :description => "The path to the Chef repo containing the Berkshelf file.",
+                :default => './'
 
             option :cookbook,
-               :long => "--cookbook NAME",
-               :description => "The cookbook upload/update"
+                :long => "--cookbook NAME",
+                :description => "The cookbook upload/update"
 
             option :berks_options,
-                   :long => "--berks_options options",
-                   :description => "Comma separated list of berkshelf upload options"
+                :long => "--berks_options options",
+                :description => "Comma separated list of berkshelf upload options"
 
             def run
-                repo = StackBuilder::Chef::Repo.new(get_repo_path(name_args))
+                StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
+
+                repo = StackBuilder::Chef::Repo.new(config[:repo_path])
 
                 berks_options = config[:berks_options]
                 unless berks_options.nil?

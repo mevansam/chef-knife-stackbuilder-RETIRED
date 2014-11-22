@@ -9,15 +9,21 @@ class Chef
 
             include Knife::StackBuilderBase
 
-            banner "knife stack upload environments REPO_PATH (options)"
+            banner "knife stack upload environments (options)"
 
-            option :env,
-               :long => "--env ENVIRONMENT",
-               :description => "Environment to upload/update"
+            option :repo_path,
+                :long => "--repo_path REPO_PATH",
+                :description => "The path to the Chef repo containing " +
+                    "the environments within an 'environments' folder.",
+                :default => './'
 
             def run
-                repo = StackBuilder::Chef::Repo.new(get_repo_path(name_args))
-                repo.upload_environments(config[:env])
+                StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
+
+                environment = config[:environment]
+
+                repo = StackBuilder::Chef::Repo.new(config[:repo_path])
+                repo.upload_environments(environment)
             end
         end
 

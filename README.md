@@ -67,6 +67,14 @@ knife stack upload repo
 knife stack build
 ```
 
+## Design
+
+### Berkshelf Cookbook Repository Management
+
+### Externalizing configuration values and order of evaluation
+
+### Dependency management and orchestration
+
 ## Contributing
 
 1. Fork the repository on Github
