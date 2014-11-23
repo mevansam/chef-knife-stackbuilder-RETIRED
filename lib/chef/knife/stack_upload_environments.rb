@@ -15,7 +15,7 @@ class Chef
                 :long => "--repo_path REPO_PATH",
                 :description => "The path to the Chef repo containing " +
                     "the environments within an 'environments' folder.",
-                :default => './'
+                :default => '.'
 
             def run
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level

@@ -10,7 +10,7 @@ module StackBuilder::Chef
 
             @logger = StackBuilder::Common::Config.logger
 
-            @repo_path = repo_path
+            @repo_path = File.expand_path(repo_path)
             @environment = environment
 
             env_file = "#{@repo_path}/etc/#{@environment}.yml"

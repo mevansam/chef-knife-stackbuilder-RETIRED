@@ -30,12 +30,6 @@ module StackBuilder::Chef
 
             config_knife(knife_cmd, knife_config['options'] || { })
             run_knife(knife_cmd)
-
-        rescue Exception => msg
-            puts("Fatal Error creating vm #{name}: #{msg}")
-            @logger.info(msg.backtrace.join("\n\t"))
-
-            raise msg
         end
 
         def delete_vm(name, knife_config)
@@ -56,10 +50,6 @@ module StackBuilder::Chef
                 server_list = run_knife(knife_cmd)
 
                 if server_list.lines.keep_if { |l| l=~/test-TEST-0/ }.first.chomp.end_with?('running')
-
-                    puts("Fatal Error deleting vm #{name}: #{msg}")
-                    @logger.info(msg.backtrace.join("\n\t"))
-
                     raise msg
                 else
                     FileUtils.rm_rf(knife_cmd.config[:vagrant_dir] + '/' + name)

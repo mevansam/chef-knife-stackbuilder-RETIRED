@@ -79,6 +79,12 @@ module StackBuilder::Chef
                 env_key = IO.read(@env_key_file)
                 knife_ssh(name, "sh -c \"echo \\\"#{env_key}\\\" > /etc/chef/encrypted_data_bag_secret\"")
             end
+
+        rescue Exception => msg
+            puts("\nError creating node #{name} using knife config: #{msg}\n#{@knife_config.to_yaml}\n")
+            @logger.info(msg.backtrace.join("\n\t")) if @logger.debug
+
+            raise msg
         end
 
         def create_vm(name, knife_config)
@@ -114,7 +120,11 @@ module StackBuilder::Chef
                 unless @run_on_event.nil?
 
         rescue Exception => msg
-            puts("Fatal Error processing vm #{name}: #{msg}")
+
+            puts( "\nError processing events #{events} on node #{name}: #{msg} " +
+                "\nknife config =>\n#{@knife_config.to_yaml}" +
+                "\nevent scripts =>\n#{@run_on_event.to_yaml}\n" )
+
             @logger.info(msg.backtrace.join("\n\t")) if @logger.debug
 
             raise msg
@@ -134,6 +144,12 @@ module StackBuilder::Chef
             knife_cmd.name_args = [ name ]
             knife_cmd.config[:yes] = true
             run_knife(knife_cmd)
+
+        rescue Exception => msg
+            puts("\nError deleting node #{name} using knife config: #{msg}\n#{@knife_config.to_yaml}\n")
+            @logger.info(msg.backtrace.join("\n\t")) if @logger.debug
+
+            raise msg
         end
 
         def delete_vm(name, knife_config)

@@ -5,7 +5,7 @@ name: Stack1
 environment: TEST
 chef_server_url: http://192.168.50.1:9999
 
-knife: &knife
+knife:
   options:
     identity_file: ~/.vagrant/insecure_key
     host_key_verify: false

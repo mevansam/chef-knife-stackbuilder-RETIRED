@@ -82,7 +82,24 @@ module StackBuilder::Common
                 end
 
             elsif v.is_a?(Hash)
-                v.each_pair { |k,vv| v[k] = eval_map_values(vv, env, file) }
+
+                new_keys = { }
+                v.each_pair do |k,vv|
+
+                    if k=~/#\{.*\}/
+
+                        new_k = eval("\"#{k}\"")
+                        if k!=new_k
+                            v.delete(k)
+                            new_keys[new_k] = eval_map_values(vv, env, file)
+                            next
+                        end
+                    end
+
+                    v[k] = eval_map_values(vv, env, file)
+                end
+                v.merge!(new_keys) unless new_keys.empty?
+
             elsif v.is_a?(Array)
                 v.map! { |vv| eval_map_values(vv, env, file) }
             end

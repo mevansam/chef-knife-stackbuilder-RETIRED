@@ -47,8 +47,8 @@ describe StackBuilder::Chef do
             .to match_array([ 'DEV', 'TEST', 'PROD' ])
         expect(Dir["#{@repo_path}/environments/**/*.rb"].map { |f| f[/\/(\w+).rb$/, 1] } )
             .to match_array([ 'DEV', 'TEST', 'PROD' ])
-        expect(Dir["#{@repo_path}/stacks/**/*.yml"].map { |f| f[/\/(\w+).yml$/, 1] } )
-            .to match_array([ 'Stack1', 'Stack2', 'Stack3' ])
+        expect(Dir["#{@repo_path}/*.yml"].map { |f| f[/\/(\w+).yml$/, 1] } )
+            .to match_array([ 'stack1', 'stack2', 'stack3' ])
 
         expect(File.exist?("#{@repo_path}/.certs/cacert.pem")).to be true
         [ 'wpweb.stackbuilder.org', 'wpdb.stackbuilder.org' ].each do |server|

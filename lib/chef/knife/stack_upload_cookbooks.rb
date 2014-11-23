@@ -14,7 +14,7 @@ class Chef
             option :repo_path,
                 :long => "--repo_path REPO_PATH",
                 :description => "The path to the Chef repo containing the Berkshelf file.",
-                :default => './'
+                :default => '.'
 
             option :cookbook,
                 :long => "--cookbook NAME",

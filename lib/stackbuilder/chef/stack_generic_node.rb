@@ -24,12 +24,6 @@ module StackBuilder::Chef
             config_knife(knife_cmd, knife_config['create']['options'] || { })
             config_knife(knife_cmd, knife_config['options'] || { })
             run_knife(knife_cmd, knife_config['create']['retries'] || 0)
-
-        rescue Exception => msg
-            puts("Fatal Error creating vm #{name}: #{msg}")
-            @logger.info(msg.backtrace.join("\n\t"))
-
-            raise msg
         end
 
         def delete_vm(name, knife_config)
@@ -52,12 +46,6 @@ module StackBuilder::Chef
             config_knife(knife_cmd, knife_config['delete']['options'] || { })
             config_knife(knife_cmd, knife_config['options'] || { })
             run_knife(knife_cmd, knife_config['delete']['retries'] || 0)
-
-        rescue Exception => msg
-            puts("Fatal Error creating vm #{name}: #{msg}")
-            @logger.info(msg.backtrace.join("\n\t"))
-
-            raise msg
         end
     end
 end

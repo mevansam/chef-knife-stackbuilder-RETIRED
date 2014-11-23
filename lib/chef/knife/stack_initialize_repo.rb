@@ -15,7 +15,7 @@ class Chef
                 :long => "--repo_path REPO_PATH",
                 :description => "The path where a skeleton Chef Berkshelf repo will be created. " +
                     "If this is no provided the current working directory will be initialized.",
-                :default => './'
+                :default => '.'
 
             option :cert_path,
                 :long => "--cert_path CERT_PATH",

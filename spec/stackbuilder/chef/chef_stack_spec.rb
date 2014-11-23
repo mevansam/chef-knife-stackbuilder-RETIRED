@@ -114,7 +114,7 @@ describe StackBuilder::Chef do
     it "should build a DEV stack" do
 
         knife_cmd = Chef::Knife::StackBuild.new
-        knife_cmd.name_args = [ @test_data_path + '/test_repo/stacks/stack1.yml' ]
+        knife_cmd.name_args = [ @test_data_path + '/test_repo/stack1.yml' ]
         knife_cmd.config[:stack_id] = @stack_ids[:dev]
         knife_cmd.config[:environment] = 'DEV'
         knife_cmd.config[:repo_path] = @repo_path
@@ -126,7 +126,7 @@ describe StackBuilder::Chef do
     it "should scale up the DEV stack web tier" do
 
         knife_cmd = Chef::Knife::StackBuild.new
-        knife_cmd.name_args = [ @test_data_path + '/test_repo/stacks/stack1.yml' ]
+        knife_cmd.name_args = [ @test_data_path + '/test_repo/stack1.yml' ]
         knife_cmd.config[:stack_id] = @stack_ids[:dev]
         knife_cmd.config[:environment] = 'DEV'
         knife_cmd.config[:node] = 'wordpress:2'
@@ -139,7 +139,7 @@ describe StackBuilder::Chef do
     it "should scale down the DEV stack web tier" do
 
         knife_cmd = Chef::Knife::StackBuild.new
-        knife_cmd.name_args = [ @test_data_path + '/test_repo/stacks/stack1.yml' ]
+        knife_cmd.name_args = [ @test_data_path + '/test_repo/stack1.yml' ]
         knife_cmd.config[:stack_id] = @stack_ids[:dev]
         knife_cmd.config[:environment] = 'DEV'
         knife_cmd.config[:node] = 'wordpress:1'
@@ -153,7 +153,7 @@ describe StackBuilder::Chef do
 
         stack = StackBuilder::Stack::Stack.new(
             StackBuilder::Chef::NodeProvider.new(@repo_path, 'DEV'),
-            @test_data_path + '/test_repo/stacks/stack1.yml',
+            @test_data_path + '/test_repo/stack1.yml',
             @stack_ids[:dev] )
 
         stack.destroy
@@ -166,7 +166,7 @@ describe StackBuilder::Chef do
     it "should build TEST stack" do
 
         knife_cmd = Chef::Knife::StackBuild.new
-        knife_cmd.name_args = [ @test_data_path + '/test_repo/stacks/stack2.yml' ]
+        knife_cmd.name_args = [ @test_data_path + '/test_repo/stack2.yml' ]
         knife_cmd.config[:stack_id] = @stack_ids[:test]
         knife_cmd.config[:environment] = 'TEST'
         knife_cmd.config[:repo_path] = @repo_path
@@ -203,7 +203,7 @@ describe StackBuilder::Chef do
 
         stack = StackBuilder::Stack::Stack.new(
             StackBuilder::Chef::NodeProvider.new(@repo_path, 'TEST'),
-            @test_data_path + '/test_repo/stacks/stack2.yml',
+            @test_data_path + '/test_repo/stack2.yml',
             @stack_ids[:test] )
 
         stack.destroy

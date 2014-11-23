@@ -19,8 +19,7 @@ module StackBuilder::Chef
                 'environments',
                 'secrets',
                 'data_bags',
-                'roles',
-                'stacks'
+                'roles'
             ]
 
         def initialize(path, certificates = nil, environments = nil, cookbooks = nil)
@@ -28,29 +27,32 @@ module StackBuilder::Chef
             raise StackBuilder::Common::StackBuilderError, "Repo path cannot be nil." if path.nil?
 
             @logger = StackBuilder::Common::Config.logger
-            @repo_path = path
+            @repo_path = File.expand_path(path)
 
-            if Dir.exist?(path)
+            if Dir.exist?(@repo_path)
 
                 REPO_DIRS.each do |folder|
-                    repo_folder = "#{path}/#{folder}"
+
+                    next if [ 'cookbooks' ].include?(folder)
+
+                    repo_folder = "#{@repo_path}/#{folder}"
                     raise InvalidRepoError,
                           "Repo folder #{repo_folder} is missing" unless Dir.exist?(repo_folder)
                 end
 
                 @environments = [ ]
-                Dir["#{path}/environments/**/*.rb"].each do |envfile|
+                Dir["#{@repo_path}/environments/**/*.rb"].each do |envfile|
                     @environments << envfile[/\/(\w+).rb$/, 1]
                 end
 
                 @logger.debug("Found stack environments #{@environments}")
             else
                 raise RepoNotFoundError,
-                      "Unable to load repo @ #{path}. If you need to create a repo please " +
+                      "Unable to load repo @ #{@repo_path}. If you need to create a repo please " +
                       "provide the list of environments at a minimum" if environments.nil?
 
                 REPO_DIRS.each do |folder|
-                    system("mkdir -p #{path}/#{folder}")
+                    system("mkdir -p #{@repo_path}/#{folder}")
                 end
 
                 # Create Berksfile
@@ -58,7 +60,7 @@ module StackBuilder::Chef
                 berksfile_template = IO.read(File.expand_path('../../resources/Berksfile.erb', __FILE__))
 
                 berksfile = ERB.new(berksfile_template, nil, '-<>').result(binding)
-                File.open("#{path}/Berksfile", 'w+') { |f| f.write(berksfile) }
+                File.open("#{@repo_path}/Berksfile", 'w+') { |f| f.write(berksfile) }
 
                 # Create Environments and Stacks
                 @environments = environments.split(',').map { |s| s.strip }
@@ -72,13 +74,13 @@ module StackBuilder::Chef
                     @environment = env_name
 
                     configfile = ERB.new(configfile_template, nil, '-<>').result(binding)
-                    File.open("#{path}/etc/#{env_name}.yml", 'w+') { |f| f.write(configfile) }
+                    File.open("#{@repo_path}/etc/#{env_name}.yml", 'w+') { |f| f.write(configfile) }
 
                     envfile = ERB.new(envfile_template, nil, '-<>').result(binding)
-                    File.open("#{path}/environments/#{env_name}.rb", 'w+') { |f| f.write(envfile) }
+                    File.open("#{@repo_path}/environments/#{env_name}.rb", 'w+') { |f| f.write(envfile) }
 
                     stackfile = ERB.new(stackfile_template, nil, '-<>').result(binding)
-                    File.open("#{path}/stacks/Stack#{i}.yml", 'w+') { |f| f.write(stackfile) }
+                    File.open("#{@repo_path}/stack#{i}.yml", 'w+') { |f| f.write(stackfile) }
                     i += 1
                 end
                 @environment = nil
@@ -86,16 +88,6 @@ module StackBuilder::Chef
                 # Create or copy certs
                 create_certs(certificates) unless certificates.nil?
             end
-
-            # Load the stacks
-            @stackfiles = { }
-            Dir["#{path}/stacks/**/*.yml"].each do |stackfile|
-                @stackfiles[stackfile[/\/(\w+).yml$/, 1]] = stackfile
-            end
-        end
-
-        def stacks
-            @stackfiles.keys
         end
 
         def upload_environments(environment = nil)
@@ -382,7 +374,7 @@ module StackBuilder::Chef
 
                 data_bag_item = eval_map_values(JSON.load(File.new(data_bag_file, 'r')), env_vars, data_bag_file)
 
-                data_bag_item_name = data_bag_file[/\/(\w+).json$/, 1]
+                data_bag_item_name = data_bag_file[/\/([-_0-9a-zA-Z]+).json$/, 1]
                 tmpfile = "#{Dir.tmpdir}/#{data_bag_item_name}.json"
                 File.open("#{tmpfile}", 'w+') { |f| f.write(data_bag_item.to_json) }
 

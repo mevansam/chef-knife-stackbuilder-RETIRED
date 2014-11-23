@@ -17,7 +17,7 @@ class Chef
                     "certificates associated with this repository would have " +
                     "been copied to a hidden folder '.certs' within this path " +
                     "when it was initialized.",
-                :default => './'
+                :default => '.'
 
             option :server,
                 :long => "--server NAME",

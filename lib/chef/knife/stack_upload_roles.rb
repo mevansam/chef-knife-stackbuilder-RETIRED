@@ -15,7 +15,7 @@ class Chef
                 :long => "--repo_path REPO_PATH",
                 :description => "The path to the Chef repo containing " +
                     "the roles within a 'roles' folder.",
-                :default => './'
+                :default => '.'
 
             option :role,
                 :long => "--role NAME",

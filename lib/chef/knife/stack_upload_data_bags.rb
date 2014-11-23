@@ -16,7 +16,7 @@ class Chef
                 :description => "The path to the Chef repo containing the data_bags " +
                     "within a 'data_bags' folder. All data bags will be encrypted with " +
                     "keys per environment located in the 'secrets' folder of the repo.",
-                :default => './'
+                :default => '.'
 
             option :data_bag,
                 :long => "--data_bag NAME",

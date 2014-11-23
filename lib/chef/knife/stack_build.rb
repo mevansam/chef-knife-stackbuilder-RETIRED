@@ -12,7 +12,7 @@ class Chef
             banner 'knife stack build STACK_FILE (options)'
 
             option :stack_id,
-                :long => "--stack_id STACK_ID",
+                :long => "--stack-id STACK_ID",
                 :description => "The unique ID for the stack. If a stack with the given" +
                     "ID does not exist then a new one will be create. If a stack for the" +
                     "given ID exists then it will be initialized with its current state."
@@ -42,14 +42,18 @@ class Chef
                :description => "The path to the Chef repo. This is required in order " +
                    "to copy the correct encryption keys from the 'secrets' folder to " +
                    "the target host as well as to read the externalized environment",
-               :default => './'
+               :default => '.'
 
             def run
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
                 environment = config[:environment] || '_default'
-
                 stack_file = name_args.first
+
+                if stack_file=~/[-_+=.0-9a-zA-Z]+/
+                    stack_file = Dir.getwd + '/' + stack_file + (stack_file.end_with?('.yml') ? '' : '.yml')
+                end
+
                 unless File.exist?(stack_file)
                     puts "Stack file '#{stack_file}' does not exist."
                     exit 1
