@@ -307,11 +307,15 @@ module StackBuilder::Common
                 rescue Exception => msg
 
                     if retries==0
+                      
+                        puts "Knife execution failed with an error."
+                        puts "* StdOut from knife run: #{output.string}"
+                        puts "* StdErr from knife run: #{error.string}"
+                        
                         @logger.debug(msg.backtrace.join("\n\t")) if Config.logger.debug?
                         raise msg
                     end
 
-                    @logger.debug(msg.backtrace.join("\n\t")) if Config.logger.debug?
                     @logger.debug("Knife command #{knife_cmd} failed. Retrying after 2s.")
 
                     sleep 2
@@ -335,6 +339,11 @@ module StackBuilder::Common
             previous_stderr, $stderr = $stderr, stdout
             yield
             stdout.string
+            
+        rescue Exception => msg
+            puts("Error: #{stdout.string}")
+            raise msg
+            
         ensure
             # Restore the previous value of stderr (typically equal to STDERR).
             $stdout = previous_stdout
