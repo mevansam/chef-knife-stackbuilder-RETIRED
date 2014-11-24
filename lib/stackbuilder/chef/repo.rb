@@ -398,7 +398,7 @@ module StackBuilder::Chef
 
             role_content = eval_map_values(JSON.load(File.new(role_file, 'r')), ENV)
 
-            role_name = role_content['name']
+            role_name = role_content.is_a?(Chef::Role) ? role_content.name : role_content['name']
             tmpfile = "#{Dir.tmpdir}/#{role_name}.json"
             File.open("#{tmpfile}", 'w+') { |f| f.write(role_content.to_json) }
 
