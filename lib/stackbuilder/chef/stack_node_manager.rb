@@ -220,6 +220,9 @@ module StackBuilder::Chef
             else
                 run_knife(knife_cmd)
             end
+            
+        rescue Exception => msg
+            puts("Error running knife ssh command '#{cmd}' on '#{name}'")
         end
 
     end
