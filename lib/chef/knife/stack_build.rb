@@ -18,7 +18,7 @@ class Chef
                     "given ID exists then it will be initialized with its current state."
 
             option :node,
-               :events => "--node NODE_TYPE_NAME[:SCALE]",
+               :long => "--node NODE_TYPE_NAME[:SCALE]",
                :description => "Applies the events to all hosts of a given node type. The " +
                    "node type is the value of the node key of a list of stack nodes"
 
@@ -28,7 +28,7 @@ class Chef
                     "attributes to be overridden"
 
             option :events,
-                :events => "--events EVENTS",
+                :long => "--events EVENTS",
                 :description => "List of comma separate events to apply. If no events are " +
                     "provided then events 'create', 'install', 'configure' will be applied " +
                     "to each new host that is either created or bootstrapped first time. If " +
@@ -72,7 +72,12 @@ class Chef
                     node_scale = node_scale.to_i unless node_scale.nil?
                 end
 
-                stack.orchestrate(config[:events], node_name, node_scale)
+                events = nil
+                if config[:events]
+                    events = events = Set.new(config[:events].split(','))
+                end
+
+                stack.orchestrate(events, node_name, node_scale)
             end
         end
 
