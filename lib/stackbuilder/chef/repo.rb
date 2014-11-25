@@ -104,6 +104,8 @@ module StackBuilder::Chef
 
         def upload_certificates(environment = nil, server = nil)
 
+            create_certs(server) unless server.nil?
+
             knife_cmd = Chef::Knife::DataBagList.new
             data_bag_list = run_knife(knife_cmd).split
 
@@ -246,24 +248,41 @@ module StackBuilder::Chef
 
                 system("rsync -ru #{certificates}/* #{repo_cert_dir}")
             else
-                ca_key = OpenSSL::PKey::RSA.new(2048)
-                ca_subject = "/CN=ca/DC=stackbuilder.org"
 
-                ca_cert = create_ca_cert(ca_key, ca_subject)
-                File.open("#{repo_cert_dir}/cacert.pem", 'w+') { |f| f.write(ca_cert.to_pem) }
+                cacert_file = "#{repo_cert_dir}/cacert.pem"
+                cakey_file = "#{repo_cert_dir}/cakey.pem"
+
+                if File.exist?(cacert_file) && File.exist?(cakey_file)
+
+                    ca_cert = OpenSSL::X509::Certificate.new(IO.read(cacert_file))
+                    ca_key = OpenSSL::PKey::RSA.new(IO.read(cakey_file))
+                else
+                    ca_key = OpenSSL::PKey::RSA.new(2048)
+                    File.open(cakey_file, 'w+') { |f| f.write(ca_key.to_pem) }
+
+                    ca_subject = "/CN=ca/DC=stackbuilder.org"
+                    ca_cert = create_ca_cert(ca_key, ca_subject)
+                    File.open(cacert_file, 'w+') { |f| f.write(ca_cert.to_pem) }
+                end
 
                 servers = certificates.split(',')
                 servers.each do |server|
 
-                    server_key = OpenSSL::PKey::RSA.new(2048)
-                    server_subject = "/C=BE/O=#{server}/OU=Test/CN=#{server}"
-                    server_cert = create_server_cert(create_csr(server_key, server_subject), ca_key, ca_cert)
-
                     server_dir = "#{repo_cert_dir}/#{server}"
-                    FileUtils.mkdir_p("#{server_dir}")
+                    server_cert_file = "#{server_dir}/cert.pem"
+                    server_key_file = "#{server_dir}/key.pem"
 
-                    File.open("#{server_dir}/cert.pem", 'w+') { |f| f.write(server_cert.to_pem) }
-                    File.open("#{server_dir}/key.pem", 'w+') { |f| f.write(server_key.to_pem) }
+                    unless File.exist?(server_cert_file) && File.exist?(server_key_file)
+
+                        server_key = OpenSSL::PKey::RSA.new(2048)
+                        server_subject = "/C=BE/O=#{server}/OU=Test/CN=#{server}"
+                        server_cert = create_server_cert(create_csr(server_key, server_subject), ca_key, ca_cert)
+
+                        FileUtils.mkdir_p(server_dir)
+
+                        File.open(server_cert_file, 'w+') { |f| f.write(server_cert.to_pem) }
+                        File.open(server_key_file, 'w+') { |f| f.write(server_key.to_pem) }
+                    end
                 end
             end
         end
@@ -283,7 +302,7 @@ module StackBuilder::Chef
             ca_cert.add_extension extension_factory
                 .create_extension('keyUsage', 'cRLSign,keyCertSign', true)
 
-            ca_cert.sign ca_key, OpenSSL::Digest::SHA1.new
+            ca_cert.sign ca_key, OpenSSL::Digest::SHA256.new
 
             ca_cert
         end
@@ -294,7 +313,7 @@ module StackBuilder::Chef
             csr.version = 0
             csr.subject = OpenSSL::X509::Name.parse(subject)
             csr.public_key = key.public_key
-            csr.sign key, OpenSSL::Digest::SHA1.new
+            csr.sign key, OpenSSL::Digest::SHA256.new
 
             csr
         end
@@ -314,7 +333,7 @@ module StackBuilder::Chef
             csr_cert.add_extension extension_factory
                 .create_extension('subjectKeyIdentifier', 'hash')
 
-            csr_cert.sign ca_key, OpenSSL::Digest::SHA1.new
+            csr_cert.sign ca_key, OpenSSL::Digest::SHA256.new
 
             csr_cert
         end
