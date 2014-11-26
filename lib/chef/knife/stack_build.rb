@@ -67,8 +67,8 @@ class Chef
 
                 node = config[:node]
                 unless node.nil?
-                    node_name = node[/(.*):(\d+)?/, 1]
-                    node_scale = node[/(.*):(\d+)?/, 2]
+                    node_name = node.split(':')[0]
+                    node_scale = node.split(':')[1]
                     node_scale = node_scale.to_i unless node_scale.nil?
                 end
 

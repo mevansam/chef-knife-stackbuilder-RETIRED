@@ -77,7 +77,7 @@ module StackBuilder::Chef
 
             unless @env_key_file.nil?
                 env_key = IO.read(@env_key_file)
-                knife_ssh(name, "sh -c \"echo \\\"#{env_key}\\\" > /etc/chef/encrypted_data_bag_secret\"")
+                knife_ssh(name, "echo '#{env_key}' > /etc/chef/encrypted_data_bag_secret")
             end
 
         rescue Exception => msg
@@ -106,13 +106,19 @@ module StackBuilder::Chef
             if events.include?('configure') || events.include?('update')
 
                 log_level = (
-                    @logger.level==Logger::FATAL ? 'fatal' :
-                    @logger.level==Logger::ERROR ? 'error' :
-                    @logger.level==Logger::WARN ? 'warn' :
-                    @logger.level==Logger::INFO ? 'info' :
-                    @logger.level==Logger::DEBUG ? 'debug' : 'error' )
+                    @logger.debug? ? 'debug' :
+                    @logger.info? ? 'info' :
+                    @logger.warn? ? 'warn' :
+                    @logger.error? ? 'error' :
+                    @logger.fatal? ? 'fatal' : 'error' )
 
-                knife_ssh(name, 'chef-client -l ' + log_level)
+                knife_ssh(name,
+                    "TMPFILE=`mktemp`\n" +
+                    "echo '#{attributes.to_json}' > $TMPFILE\n" +
+                    "chef-client -l #{log_level} -j $TMPFILE\n" +
+                    "result=$?\n" +
+                    "rm -f $TMPFILE\n" +
+                    "exit $result" )
             end
 
             @run_on_event.each_pair { |event, cmd|
@@ -121,7 +127,8 @@ module StackBuilder::Chef
 
         rescue Exception => msg
 
-            puts( "\nError processing events #{events} on node #{name}: #{msg} " +
+            puts( "\nError processing events events on node #{name}: #{msg} " +
+                "\nEvents => #{events.collect { |e| e } .join(", ")}" +
                 "\nknife config =>\n#{@knife_config.to_yaml}" +
                 "\nevent scripts =>\n#{@run_on_event.to_yaml}\n" )
 
@@ -202,10 +209,13 @@ module StackBuilder::Chef
 
         def knife_ssh(name, cmd)
 
-            sudo = @knife_config['options']['sudo'] ? 'sudo ' : ''
-            ssh_cmd = sudo + cmd
+            sudo = @knife_config['options']['sudo'] ? 'sudo -i su -c ' : ''
 
-            @logger.debug("Running '#{ssh_cmd}' on node 'name:#{name}'.")
+            ssh_cmd = "TMPFILE=`mktemp` && " +
+                "echo -e \"#{cmd.gsub(/\"/, "\\\"").gsub(/\$/, "\\$").gsub(/\`/, '\\' + '\`')}\" > $TMPFILE && " +
+                "chmod 0744 $TMPFILE && " +
+                "#{sudo}$TMPFILE && " +
+                "rm $TMPFILE"
 
             knife_cmd = Chef::Knife::Ssh.new
             knife_cmd.name_args = [ "name:#{name}", ssh_cmd ]
@@ -213,16 +223,16 @@ module StackBuilder::Chef
 
             config_knife(knife_cmd, @knife_config['options'] || { })
 
-            if @logger.info?
+            if @logger.info? || @logger.debug?
+
                 output = StackBuilder::Common::TeeIO.new($stdout)
                 error = StackBuilder::Common::TeeIO.new($stderr)
+
+                @logger.info("Running '#{cmd}' on node 'name:#{name}'.")
                 run_knife(knife_cmd, 0, output, error)
             else
                 run_knife(knife_cmd)
             end
-            
-        rescue Exception => msg
-            puts("Error running knife ssh command '#{cmd}' on '#{name}'")
         end
 
     end

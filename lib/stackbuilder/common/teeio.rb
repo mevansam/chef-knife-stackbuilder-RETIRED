@@ -12,7 +12,11 @@ module StackBuilder::Common
             @output = output
         end
 
-        def write string
+        def tty?
+            return false
+        end
+
+        def write(string)
             @string_io.write(string)
             @output.write(string) unless @output.nil?
         end

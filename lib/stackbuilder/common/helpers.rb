@@ -298,20 +298,19 @@ module StackBuilder::Common
             while run
 
                 begin
-                    stdout = capture_stdout do
-                        knife_cmd.run
-                    end
-                    Config.logger.debug(stdout) if Config.logger.debug? && !stdout.strip.empty?
+                    knife_cmd.run
                     run = false
 
                 rescue Exception => msg
 
                     if retries==0
-                      
-                        puts "Knife execution failed with an error."
-                        puts "* StdOut from knife run: #{output.string}"
-                        puts "* StdErr from knife run: #{error.string}"
-                        
+
+                        if @logger.level>=::Logger::WARN
+                            puts "Knife execution failed with an error."
+                            puts "* StdOut from knife run: #{output.string}"
+                            puts "* StdErr from knife run: #{error.string}"
+                        end
+
                         @logger.debug(msg.backtrace.join("\n\t")) if Config.logger.debug?
                         raise msg
                     end
@@ -323,8 +322,7 @@ module StackBuilder::Common
                 end
             end
 
-            result = output.string
-            result.empty? && !stdout.empty? ? stdout : result
+            output.string
         end
 
         #

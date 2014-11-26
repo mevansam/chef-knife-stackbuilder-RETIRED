@@ -216,7 +216,7 @@ module StackBuilder::Chef
                     upload_role(role_file)
                 end
             else
-                role_file = "#{@repo_path}/roles/role.json"
+                role_file = "#{@repo_path}/roles/#{role}.json"
                 upload_role(role_file) if File.exist?(role_file)
             end
         end
@@ -275,7 +275,7 @@ module StackBuilder::Chef
                     unless File.exist?(server_cert_file) && File.exist?(server_key_file)
 
                         server_key = OpenSSL::PKey::RSA.new(2048)
-                        server_subject = "/C=BE/O=#{server}/OU=Test/CN=#{server}"
+                        server_subject = "/C=US/O=#{server}/OU=Chef Community/CN=#{server}"
                         server_cert = create_server_cert(create_csr(server_key, server_subject), ca_key, ca_cert)
 
                         FileUtils.mkdir_p(server_dir)
