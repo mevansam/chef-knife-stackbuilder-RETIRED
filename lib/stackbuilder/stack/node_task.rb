@@ -10,6 +10,7 @@ module StackBuilder::Stack
 
         attr_accessor :scale
         attr_accessor :prev_scale
+        attr_accessor :sync
 
         attr_accessor :deleted
         
@@ -19,6 +20,10 @@ module StackBuilder::Stack
 
         attr_reader :resource_sync
         attr_reader :manager
+
+        SYNC_NONE  = 0  # All node instances processed asynchronously
+        SYNC_FIRST = 1  # First node instance is processed synchronously and the rest asynchronously
+        SYNC_ALL   = 2  # All node instances are processed synchronously
         
         def initialize(manager, nodes, node_config, id)
             
@@ -34,21 +39,23 @@ module StackBuilder::Stack
             
             @name = node_config['node']
             @attributes = (node_config.has_key?('attributes') ? node_config['attributes'] : { })
-            # @on_events = (node_config.has_key?('on_events') ? node_config['on_events'] : [ ])
+
+            case node_config['sync']
+                when "first"
+                    @sync = SYNC_FIRST
+                when "all"
+                    @sync = SYNC_ALL
+                else
+                    @sync = SYNC_NONE
+            end
 
             if node_config.has_key?('targets')
 
                 @logger.warn("Ignoring 'scale' attribute for '#{@name}' as that node has targets.") \
                     if node_config.has_key?("scale")
 
-                @logger.warn("Ignoring 'sync' attribute for '#{@name}' as that node has targets.") \
-                    if node_config.has_key?("sync")
-
                 @scale = 0
-                @sync = 'no'
             else
-                @sync = (node_config.has_key?('sync') ? node_config['sync'] : 'no')
-
                 current_scale = manager.get_scale
                 if current_scale==0
                     @scale = (node_config.has_key?("scale") ? node_config["scale"] : 1)
@@ -107,7 +114,7 @@ module StackBuilder::Stack
                 return @counter
             }
         end
-        
+
         def prepare
 
             threads = [ ]
@@ -120,11 +127,11 @@ module StackBuilder::Stack
                 current_scale = @manager.get_scale
 
                 @resource_sync.size.step(current_scale - 1) do |i|
-                    @resource_sync[i] = StackBuilder::Common::Semaphore.new
+                    @resource_sync[i] ||= StackBuilder::Common::Semaphore.new
                     @resource_sync[i].signal
                 end
 
-                if current_scale > @scale
+                if current_scale>@scale
 
                     @logger.debug("Scaling #{self} from #{current_scale} down to #{@scale}")
 
@@ -165,7 +172,7 @@ module StackBuilder::Stack
                     end
                 end
 
-                if @scale > current_scale && !@deleted
+                if @scale>current_scale && !@deleted
 
                     @logger.debug("Scaling #{self} from #{current_scale} up to #{@scale}")
 
@@ -232,7 +239,7 @@ module StackBuilder::Stack
             elsif !@targets.empty?
 
                 @targets.each do |t|
-                    t.manager.get_scale.times do |i|
+                    t.scale.times do |i|
                         spawn_processing(i, events, threads, t)
                     end
                 end
@@ -251,7 +258,9 @@ module StackBuilder::Stack
             p = "Parent_Nodes[#{@parent_nodes.collect { |n| "#{n.name}:#{n.counter}" }.join(", ")}]"
             c = "Child_Nodes[#{@child_nodes.collect { |n| n.name }.join(", ")}]"
             
-            "(#{@name}, #{@sync}, #{p}, #{c})"
+            "(#{@name}, #{p}, #{c}, " +
+                "Sync[#{@sync==SYNC_NONE ? "async" : @sync==SYNC_FIRST ? "first" : "alls"}], " +
+                "Scale[#{manager.get_scale}])"
         end
 
         private
@@ -259,57 +268,49 @@ module StackBuilder::Stack
         def spawn_processing(i, events, threads, target = nil)
 
             if target.nil?
-                @resource_sync[i].wait
-
                 target_manager = nil
                 prev_scale = @prev_scale
             else
-                target.resource_sync[i].wait
-
                 target_manager = target.manager
                 prev_scale = target.prev_scale
             end
 
-            threads << Thread.new {
+            if target_manager.nil?
+                $stdout.printf( "Processing node '%s[%d]'.\n", @name, i)
+            else
+                $stdout.printf( "Processing target node '%s[%d]' from %s.\n", target_manager.name, i, @name)
+            end
 
-                begin
-                    @logger.debug("Processing #{self} VM ##{i}#{events.nil? ? "" : " with events \"" + events.collect { |e| e }.join(",") + "\""}.")
-                    if target_manager.nil?
+            # If no scale up occurs then run only the given events.
+            orchestrate_events = events.clone
+            # If new VMs have been added to the cluster to scale up then add default events for the new VM.
+            orchestrate_events = orchestrate_events.merge([ "create", "install", "configure" ]) if i >= prev_scale
 
-                        $stdout.printf( "Processing node '%s[%d]'.\n",
-                            @name, i) unless @logger.debug?
-                    else
-                        $stdout.printf( "Processing target node '%s[%d]' from %s.\n",
-                            target_manager.name, i, @name) unless @logger.debug?
+            @logger.debug("Events for node '#{name}' instance #{i} build: " +
+                "#{orchestrate_events.collect { |e| e } .join(", ")}") if @logger.debug?
+
+            if @sync==SYNC_ALL || (i==0 && @sync==SYNC_FIRST)
+                @manager.process(i, orchestrate_events, parse_attributes(@attributes, i), target_manager)
+            else
+                @resource_sync[i].wait if target.nil?
+                threads << Thread.new {
+
+                    begin
+                        @manager.process(i, orchestrate_events, parse_attributes(@attributes, i), target_manager)
+
+                    rescue Exception => msg
+
+                        puts("Fatal Error: #{msg}")
+                        @logger.debug(msg.backtrace.join("\n\t"))
+
+                        raise StackBuilder::Common::StackOrchestrateError,
+                            "Orchestrating node resource '#{name}[#{i}]' " +
+                            "terminated with an error: #{msg}"
+                    ensure
+                        @resource_sync[i].signal if target.nil?
                     end
-
-                    # If no scale up occurs then run only the given events.
-                    orchestrate_events = events.clone
-                    # If new VMs have been added to the cluster to scale up then add default events for the new VM.
-                    orchestrate_events = orchestrate_events.merge([ "create", "install", "configure" ]) \
-                        if i >= prev_scale
-
-                    @logger.debug("Events for node #{name} / #{i} build: " +
-                        "#{orchestrate_events.collect { |e| e } .join(", ")}") if @logger.debug?
-
-                    @manager.process(i, orchestrate_events, parse_attributes(@attributes, i), target_manager)
-
-                rescue Exception => msg
-
-                    puts("Fatal Error: #{msg}")
-                    @logger.debug(msg.backtrace.join("\n\t"))
-
-                    raise StackBuilder::Common::StackOrchestrateError,
-                        "Orchestrating node resource '#{name}[#{i}]' " +
-                        "terminated with an error: #{msg}"
-                ensure
-                    if target.nil?
-                        @resource_sync[i].signal
-                    else
-                        target.resource_sync[i].signal
-                    end
-                end
-            }
+                }
+            end
         end
 
         def parse_attributes(attributes, index)
@@ -329,7 +330,7 @@ module StackBuilder::Stack
                         results[k] << parse_attributes( { "#" => aval }, index)["#"]
                     end
 
-                elsif v =~ /^nodes\[.*\]$/
+                elsif v =~ /^nodes\[.*\](.size)?$/
 
                     lookup_keys = v.split(/[\[\]]/).reject { |l| l == "nodes" || l.empty? }
 
@@ -341,9 +342,12 @@ module StackBuilder::Stack
                         unless node_attributes.nil? || node_attributes.empty?
 
                             indexes = [ ]
+                            values = [ ]
 
                             l = lookup_keys.shift
                             case l
+                                when ".size"
+                                    values << node.scale
                                 when "*"
                                     indexes = (0..node.scale-1).to_a
                                 when /\d+/
@@ -352,7 +356,6 @@ module StackBuilder::Stack
                                     indexes << 0
                             end
 
-                            values = [ ]
                             indexes.each do |i|
                                 v = node_attributes[i]
                                 lookup_keys.each do |j|

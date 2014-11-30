@@ -23,7 +23,15 @@ module StackBuilder::Chef
 
             config_knife(knife_cmd, knife_config['create']['options'] || { })
             config_knife(knife_cmd, knife_config['options'] || { })
-            run_knife(knife_cmd, knife_config['create']['retries'] || 0)
+
+            if knife_config['create']['synchronized']
+                @@sync ||= Mutex.new
+                @@sync.synchronize {
+                    run_knife(knife_cmd, knife_config['create']['retries'] || 0)
+                }
+            else
+                run_knife(knife_cmd, knife_config['create']['retries'] || 0)
+            end
         end
 
         def delete_vm(name, knife_config)
@@ -45,7 +53,15 @@ module StackBuilder::Chef
 
             config_knife(knife_cmd, knife_config['delete']['options'] || { })
             config_knife(knife_cmd, knife_config['options'] || { })
-            run_knife(knife_cmd, knife_config['delete']['retries'] || 0)
+
+            if knife_config['delete']['synchronized']
+                @@sync ||= Mutex.new
+                @@sync.synchronize {
+                    run_knife(knife_cmd, knife_config['delete']['retries'] || 0)
+                }
+            else
+                run_knife(knife_cmd, knife_config['delete']['retries'] || 0)
+            end
         end
     end
 end

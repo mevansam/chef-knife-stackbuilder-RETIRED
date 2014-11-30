@@ -48,23 +48,28 @@ module StackBuilder::Chef
         def get_node_manager(node_config)
 
             knife_config = node_config['knife']
-            if knife_config.has_key?('plugin')
-
-                case knife_config['plugin']
-                    when 'vagrant'
-                        return StackBuilder::Chef::VagrantNodeManager.new(@id, node_config, @repo_path, @environment)
-
-                    # TODO: Refactor so that managers are pluggable from other gems
-
-                    else
-                        raise ArgumentError, "Unknown plugin #{knife['plugin']}."
-                end
-
-            elsif knife_config.has_key?('create')
-                return StackBuilder::Chef::GenericNodeManager.new(@id, node_config, @repo_path, @environment)
+            if knife_config.nil?
+                return StackBuilder::Chef::NodeManager.new(@id, node_config, @repo_path, @environment)
 
             else
-                return StackBuilder::Chef::NodeManager.new(@id, node_config, @repo_path, @environment)
+                if knife_config.has_key?('plugin')
+
+                    case knife_config['plugin']
+                        when 'vagrant'
+                            return StackBuilder::Chef::VagrantNodeManager.new(@id, node_config, @repo_path, @environment)
+
+                        # TODO: Refactor so that managers are pluggable from other gems
+
+                        else
+                            raise ArgumentError, "Unknown plugin #{knife['plugin']}."
+                    end
+
+                elsif knife_config.has_key?('create')
+                    return StackBuilder::Chef::GenericNodeManager.new(@id, node_config, @repo_path, @environment)
+
+                else
+                    return StackBuilder::Chef::NodeManager.new(@id, node_config, @repo_path, @environment)
+                end
             end
         end
     end

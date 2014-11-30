@@ -22,23 +22,22 @@ module StackBuilder::Chef
             @run_on_event = node_config['run_on_event']
 
             @knife_config = node_config['knife']
+            if @knife_config
 
-            raise ArgumentError, 'An ssh user needs to be provided for bootstrap and knife ssh.' \
-                unless @knife_config['options'].has_key?('ssh_user')
+                raise ArgumentError, 'An ssh user needs to be provided for bootstrap and knife ssh.' \
+                    unless @knife_config['options'].has_key?('ssh_user')
 
-            raise ArgumentError, 'An ssh key file or password must be provided for knife to be able ssh to a node.' \
-                unless @knife_config['options'].has_key?('identity_file') ||
-                   @knife_config['options'].has_key?('ssh_password')
+                raise ArgumentError, 'An ssh key file or password must be provided for knife to be able ssh to a node.' \
+                    unless @knife_config['options'].has_key?('identity_file') ||
+                       @knife_config['options'].has_key?('ssh_password')
 
-            @ssh_user = @knife_config['options']['ssh_user']
-            @ssh_password = @knife_config['options']['ssh_password']
-            @identity_file = @knife_config['options']['identity_file']
+                @ssh_user = @knife_config['options']['ssh_user']
+                @ssh_password = @knife_config['options']['ssh_password']
+                @identity_file = @knife_config['options']['identity_file']
 
-            @repo_path = repo_path
-            @environment = environment
-
-            @env_key_file = "#{@repo_path}/secrets/#{@environment}"
-            @env_key_file = nil unless File.exist?(@env_key_file)
+                @env_key_file = "#{repo_path}/secrets/#{environment}"
+                @env_key_file = nil unless File.exist?(@env_key_file)
+            end
         end
 
         def get_name
@@ -93,9 +92,18 @@ module StackBuilder::Chef
 
         def process(index, events, attributes, target = nil)
 
+            if target.nil?
+                self.process_vm(index, events, attributes)
+            else
+                target.process_vm(index, events, attributes, @run_list, @run_on_event)
+            end
+        end
+
+        def process_vm(index, events, attributes, run_list = nil, run_on_event = nil)
+
             name = "#{@node_id}-#{index}"
 
-            if events.include?('update') && !@run_list.nil?
+            if events.include?('update') && run_list.nil? && !@run_list.nil?
                 knife_cmd = Chef::Knife::NodeRunListSet.new
                 knife_cmd.name_args = [ name, @run_list ]
                 run_knife(knife_cmd)
@@ -115,15 +123,17 @@ module StackBuilder::Chef
                 knife_ssh(name,
                     "TMPFILE=`mktemp`\n" +
                     "echo '#{attributes.to_json}' > $TMPFILE\n" +
-                    "chef-client -l #{log_level} -j $TMPFILE\n" +
+                    "chef-client -l #{log_level} -j $TMPFILE#{run_list.nil? ? '' : " -o #{run_list}"}\n" +
                     "result=$?\n" +
                     "rm -f $TMPFILE\n" +
                     "exit $result" )
             end
 
-            @run_on_event.each_pair { |event, cmd|
+            (run_on_event || @run_on_event).each_pair { |event, cmd|
                 knife_ssh(name, ERB.new(cmd, nil, '-<>').result(binding)) if events.include?(event) } \
                 unless @run_on_event.nil?
+
+            nil
 
         rescue Exception => msg
 
@@ -200,7 +210,7 @@ module StackBuilder::Chef
                     set_attributes(name, v, key.nil? ? k : key + '.' + k)
                 else
                     knife_cmd = KnifeAttribute::Node::NodeAttributeSet.new
-                    knife_cmd.name_args = [ name, key + '.' + k, v.to_s ]
+                    knife_cmd.name_args = [ name, (key.nil? ? k : key + '.' + k), v.to_s ]
                     knife_cmd.config[:type] = 'override'
                     run_knife(knife_cmd)
                 end

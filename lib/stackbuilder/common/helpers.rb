@@ -51,7 +51,11 @@ module StackBuilder::Common
             if v.is_a?(String)
 
                 if v=~/#\{.*\}/
-                    return eval("\"#{v}\"")
+                    begin
+                        return eval("\"#{v}\"")
+                    rescue
+                        return v
+                    end
 
                 elsif v.start_with?('<<')
 

@@ -73,7 +73,22 @@ knife stack build
 
 ### Externalizing configuration values and order of evaluation
 
+#### Requesting user input for non-persisted values
+
+#### Including common yaml configurations
+
+#### Processing node attributes
+
+### Converging a cluster using target nodes
+
+* Magic variables
+
 ### Dependency management and orchestration
+
+## To Do:
+
+* Use Chef Pushy instead of Knife SSH
+* Add option to execute Chef Push jobs on events
 
 ## Contributing
 

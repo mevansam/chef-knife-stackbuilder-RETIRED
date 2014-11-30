@@ -29,7 +29,11 @@ module StackBuilder::Chef
             knife_cmd.config[:ssh_port] = '22'
 
             config_knife(knife_cmd, knife_config['options'] || { })
-            run_knife(knife_cmd)
+
+            @@sync ||= Mutex.new
+            @@sync.synchronize {
+                run_knife(knife_cmd)
+            }
         end
 
         def delete_vm(name, knife_config)
@@ -39,7 +43,10 @@ module StackBuilder::Chef
             knife_cmd.config[:yes] = true
             knife_cmd.config[:vagrant_dir] = File.join(Dir.home, '/.vagrant')
 
-            run_knife(knife_cmd, 3)
+            @@sync ||= Mutex.new
+            @@sync.synchronize {
+                run_knife(knife_cmd, 3)
+            }
 
         rescue Exception => msg
 
