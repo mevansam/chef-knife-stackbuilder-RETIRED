@@ -30,6 +30,11 @@ module StackBuilder::Chef
 
             config_knife(knife_cmd, knife_config['options'] || { })
 
+            ip_address = knife_cmd.config[:ip_address]
+            knife_cmd.config[:ip_address] = ip_address[/(\d+\.\d+\.\d+\.)/, 1] + \
+                (ip_address[/\.(\d+)\+/, 1].to_i + name[/-(\d+)$/, 1].to_i).to_s \
+                unless ip_address.nil? || !ip_address.end_with?('+')
+
             @@sync ||= Mutex.new
             @@sync.synchronize {
                 run_knife(knife_cmd)
