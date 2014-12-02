@@ -68,12 +68,6 @@ module StackBuilder::Chef
             knife_cmd.config[:type] = 'override'
             run_knife(knife_cmd)
 
-            unless @run_list.nil?
-                knife_cmd = Chef::Knife::NodeRunListSet.new
-                knife_cmd.name_args = [ name, @run_list ]
-                run_knife(knife_cmd)
-            end
-
             unless @env_key_file.nil?
                 env_key = IO.read(@env_key_file)
                 knife_ssh(name, "echo '#{env_key}' > /etc/chef/encrypted_data_bag_secret")
@@ -111,7 +105,8 @@ module StackBuilder::Chef
 
             set_attributes(name, attributes)
 
-            if events.include?('configure') || events.include?('update')
+            if (events.include?('configure') || events.include?('update')) &&
+                !(@run_list.nil? && run_list.nil?)
 
                 log_level = (
                     @logger.debug? ? 'debug' :
@@ -120,10 +115,10 @@ module StackBuilder::Chef
                     @logger.error? ? 'error' :
                     @logger.fatal? ? 'fatal' : 'error' )
 
-                knife_ssh(name,
+                knife_ssh( name,
                     "TMPFILE=`mktemp`\n" +
                     "echo '#{attributes.to_json}' > $TMPFILE\n" +
-                    "chef-client -l #{log_level} -j $TMPFILE#{run_list.nil? ? '' : " -o #{run_list}"}\n" +
+                    "chef-client -l #{log_level} -j $TMPFILE -r #{run_list || @run_list}\n" +
                     "result=$?\n" +
                     "rm -f $TMPFILE\n" +
                     "exit $result" )
