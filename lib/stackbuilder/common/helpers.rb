@@ -52,7 +52,7 @@ module StackBuilder::Common
 
                 if v=~/#\{.*\}/
                     begin
-                        return eval("\"#{v}\"")
+                        return eval("\"#{v.gsub(/\"/, "\\\"")}\"")
                     rescue
                         return v
                     end
