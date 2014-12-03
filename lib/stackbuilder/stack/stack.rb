@@ -166,7 +166,7 @@ module StackBuilder::Stack
                                 execution_count += 1
                             }                    
                         rescue Exception => msg
-                            @logger.error("Orchestrating node '#{n}' terminated with an exception: #{msg}")
+                            @logger.error("Processing node '#{n}' terminated with an exception: #{msg}")
                             @logger.info(msg.backtrace.join("\n\t"))
                             terminate = true
                         end
