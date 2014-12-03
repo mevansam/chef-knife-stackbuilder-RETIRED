@@ -304,7 +304,7 @@ module StackBuilder::Stack
                         @logger.debug(msg.backtrace.join("\n\t"))
 
                         raise StackBuilder::Common::StackOrchestrateError,
-                            "Orchestrating node resource '#{name}[#{i}]' " +
+                            "Processing node resource '#{name}[#{i}]' " +
                             "terminated with an error: #{msg}"
                     ensure
                         @resource_sync[i].signal if target.nil?
@@ -375,7 +375,7 @@ module StackBuilder::Stack
                     if v.size == 1
                         results[k] = v[0]
                     else
-                        results[k] = ""
+                        result = ""
 
                         is_var = false
                         v.each do |s|
@@ -383,7 +383,7 @@ module StackBuilder::Stack
                             if is_var
                                 is_var = false
                                 sstr = (s == "index" ? index.to_s : parse_attributes( { "#" => s }, index)["#"])
-                                results[k] << sstr unless sstr.nil?
+                                result += sstr unless sstr.nil?
                                 next
                             end
 
@@ -392,7 +392,16 @@ module StackBuilder::Stack
                                 next
                             end
 
-                            results[k] << s
+                            result += s
+                        end
+
+                        if result.start_with?('<<!')
+
+                            s = result[3, result.length-3]
+                            @logger.debug("Evaluating the result of: #{s}")
+                            results[k] = eval(s)
+                        else
+                            results[k] = result
                         end
                     end
                 else
@@ -403,6 +412,11 @@ module StackBuilder::Stack
             end
 
             results
+
+        rescue Exception => msg
+
+            @logger.debug("Fatal Error: #{msg} : #{msg.backtrace.join("\n\t")}")
+            raise msg
         end
 
     end

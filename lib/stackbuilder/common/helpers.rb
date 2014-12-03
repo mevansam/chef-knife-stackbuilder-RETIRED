@@ -82,6 +82,9 @@ module StackBuilder::Common
                             yaml = load_yaml(include_file, env)
                             return lookup_keys.empty? ? yaml
                                 : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
+
+                        else
+                            return v
                     end
                 end
 
