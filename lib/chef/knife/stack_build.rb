@@ -45,6 +45,8 @@ class Chef
                :default => '.'
 
             def run
+                time_start = Time.now
+
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
                 environment = config[:environment] || '_default'
@@ -59,11 +61,14 @@ class Chef
                     exit 1
                 end
 
+                stack_id = config[:stack_id] || ENV['STACK_ID']
+                stack_overrides = config[:overrides] || ENV['STACK_OVERRIDES']
+
                 stack = StackBuilder::Stack::Stack.new(
                     StackBuilder::Chef::NodeProvider.new(config[:repo_path], environment),
                     stack_file,
-                    config[:stack_id],
-                    config[:overrides] )
+                    stack_id,
+                    stack_overrides )
 
                 node = config[:node]
                 unless node.nil?
@@ -78,6 +83,12 @@ class Chef
                 end
 
                 stack.orchestrate(events, node_name, node_scale)
+
+            ensure
+                time_elapsed = Time.now - time_start
+
+                $stdout.printf( "\nStack build for '%s' took %d minutes and '%.3f' seconds\n",
+                    stack_file, time_elapsed/60, time_elapsed%60 )
             end
         end
 
