@@ -147,7 +147,7 @@ module StackBuilder::Stack
 
                             begin
                                 @logger.debug("Deleting #{self} #{i}.")
-                                $stdout.printf("Deleting node resource '%s[#%d]'.\n",
+                                $stdout.printf("Deleting node resource '%s[%d]'.\n",
                                     @name, i) unless @logger.debug?
 
                                 @manager.process(i, delete_events, parse_attributes(@attributes, i))
@@ -159,7 +159,7 @@ module StackBuilder::Stack
                                 @logger.debug(msg.backtrace.join("\n\t"))
 
                                 raise StackBuilder::Common::StackDeleteError,
-                                    "Deleting node resource '#{name}[#{i}]' " +
+                                    "Deleting node resource '#{name}[{i}]' " +
                                     "terminated with an error: #{msg}"
                             ensure
                                 resource_sync.signal

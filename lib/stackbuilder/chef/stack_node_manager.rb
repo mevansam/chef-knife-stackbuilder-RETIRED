@@ -10,6 +10,9 @@ module StackBuilder::Chef
 
         attr_accessor :name
 
+        attr_accessor :run_list
+        attr_accessor :run_on_event
+
         def initialize(id, node_config, repo_path, environment)
 
             @logger = StackBuilder::Common::Config.logger
@@ -89,24 +92,25 @@ module StackBuilder::Chef
             if target.nil?
                 self.process_vm(index, events, attributes)
             else
-                target.process_vm(index, events, attributes, @run_list, @run_on_event)
+                target.process_vm(index, events, attributes, self)
             end
         end
 
-        def process_vm(index, events, attributes, run_list = nil, run_on_event = nil)
+        def process_vm(index, events, attributes, node_manager = nil)
 
             name = "#{@node_id}-#{index}"
 
-            if events.include?('update') && run_list.nil? && !@run_list.nil?
-                knife_cmd = Chef::Knife::NodeRunListSet.new
-                knife_cmd.name_args = [ name, @run_list ]
-                run_knife(knife_cmd)
+            if node_manager.nil?
+                run_list = @run_list
+                run_on_event = @run_on_event
+            else
+                run_list = node_manager.run_list
+                run_on_event = node_manager.run_on_event
             end
 
             set_attributes(name, attributes)
 
-            if (events.include?('configure') || events.include?('update')) &&
-                !(@run_list.nil? && run_list.nil?)
+            if (events.include?('configure') || events.include?('update')) && !run_list.nil?
 
                 log_level = (
                     @logger.debug? ? 'debug' :
@@ -115,27 +119,30 @@ module StackBuilder::Chef
                     @logger.error? ? 'error' :
                     @logger.fatal? ? 'fatal' : 'error' )
 
+                knife_cmd = Chef::Knife::NodeRunListSet.new
+                knife_cmd.name_args = [ name, run_list ]
+                run_knife(knife_cmd)
+
                 knife_ssh( name,
                     "TMPFILE=`mktemp`\n" +
                     "echo '#{attributes.to_json}' > $TMPFILE\n" +
-                    "chef-client -l #{log_level} -j $TMPFILE -r #{run_list || @run_list}\n" +
+                    "chef-client -l #{log_level} -j $TMPFILE\n" +
                     "result=$?\n" +
                     "rm -f $TMPFILE\n" +
                     "exit $result" )
             end
 
-            (run_on_event || @run_on_event).each_pair { |event, cmd|
+            run_on_event.each_pair { |event, cmd|
                 knife_ssh(name, ERB.new(cmd, nil, '-<>').result(binding)) if events.include?(event) } \
-                unless @run_on_event.nil?
-
-            nil
+                unless run_on_event.nil?
 
         rescue Exception => msg
 
-            puts( "\nError processing events events on node #{name}: #{msg} " +
+            puts( "\nError processing node #{name}: #{msg} " +
                 "\nEvents => #{events.collect { |e| e } .join(", ")}" +
                 "\nknife config =>\n#{@knife_config.to_yaml}" +
-                "\nevent scripts =>\n#{@run_on_event.to_yaml}\n" )
+                "\nrun list =>\n#{run_list}" +
+                "\nevent scripts =>\n#{run_on_event.to_yaml}\n" )
 
             @logger.info(msg.backtrace.join("\n\t")) if @logger.debug
 
