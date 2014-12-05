@@ -96,6 +96,9 @@ module StackBuilder::Chef
             knife_cmd = Chef::Knife::EnvironmentFromFile.new
 
             environments.each do |env_name|
+
+                # TODO: Handle JSON environment files. JSON files should be processed similar to roles.
+
                 knife_cmd.name_args = [ "#{@repo_path}/environments/#{env_name}.rb" ]
                 run_knife(knife_cmd)
                 puts "Uploaded environment '#{env_name}' to '#{Chef::Config.chef_server_url}'."
