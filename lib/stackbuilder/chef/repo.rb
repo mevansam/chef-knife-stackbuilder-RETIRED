@@ -122,8 +122,9 @@ module StackBuilder::Chef
 
             Dir["#{@repo_path}/.certs/*"].each do |server_cert_dir|
 
-                s = server_cert_dir.split('/').last
-                unless s=="cacert.pem"
+                if File.directory?(server_cert_dir)
+
+                    s = server_cert_dir.split('/').last
 
                     server_env_name = s[/.*_(\w+)$/, 1]
                     server_name = server_env_name.nil? ? s : s[/(.*)_\w+$/, 1]
@@ -168,7 +169,7 @@ module StackBuilder::Chef
 
                         env_file = "#{@repo_path}/etc/#{env_name}.yml"
                         env_vars = File.exist?(env_file) ?
-                            StackBuilder::Common.load_yaml("#{@repo_path}/etc/#{env_name}.yml", ENV) : { }
+                            YAML.load_file("#{@repo_path}/etc/#{env_name}.yml") : { }
 
                         merge_maps(env_vars, ENV)
 
@@ -375,14 +376,13 @@ module StackBuilder::Chef
             knife_cmd.config[:secret] = get_secret(server_env_name)
             run_knife(knife_cmd)
 
-            File.delete(tmpfile)
-
             puts "Uploaded '#{server_env_name}' certificate for server '#{server_name}' " +
                 "to data bag '#{data_bag_name}' at '#{Chef::Config.chef_server_url}'."
 
         rescue Exception => msg
-            File.delete(tmpfile) unless tmpfile.nil?
             @logger.error(msg)
+        ensure
+            File.delete(tmpfile) unless tmpfile.nil? || !File.exist?(tmpfile)
         end
 
         def upload_data_bag_items(secret, path, data_bag_name, env_vars)
@@ -393,7 +393,9 @@ module StackBuilder::Chef
 
                 data_bag_item = eval_map_values(JSON.load(File.new(data_bag_file, 'r')), env_vars, data_bag_file)
 
-                data_bag_item_name = data_bag_file[/\/([-_0-9a-zA-Z]+).json$/, 1]
+                data_bag_item_name = data_bag_item['id']
+                @logger.debug("Uploading data bag '#{data_bag_item_name}' with contents:\n#{data_bag_item.to_yaml}")
+
                 tmpfile = "#{Dir.tmpdir}/#{data_bag_item_name}.json"
                 File.open("#{tmpfile}", 'w+') { |f| f.write(data_bag_item.to_json) }
 
@@ -409,8 +411,9 @@ module StackBuilder::Chef
             end
 
         rescue Exception => msg
-            File.delete(tmpfile) unless tmpfile.nil?
             @logger.error(msg)
+        ensure
+            File.delete(tmpfile) unless tmpfile.nil? || !File.exist?(tmpfile)
         end
 
         def upload_role(role_file)
@@ -418,6 +421,8 @@ module StackBuilder::Chef
             role_content = eval_map_values(JSON.load(File.new(role_file, 'r')), ENV)
 
             role_name = role_content.is_a?(Chef::Role) ? role_content.name : role_content['name']
+            @logger.debug("Uploading role '#{role_name}' with contents:\n#{role_content.to_yaml}")
+
             tmpfile = "#{Dir.tmpdir}/#{role_name}.json"
             File.open("#{tmpfile}", 'w+') { |f| f.write(role_content.to_json) }
 
@@ -425,13 +430,12 @@ module StackBuilder::Chef
             knife_cmd.name_args = [ tmpfile ]
             run_knife(knife_cmd)
 
-            File.delete(tmpfile)
-
             puts "Uploaded role '#{role_name}' to '#{Chef::Config.chef_server_url}'."
 
         rescue Exception => msg
-            File.delete(tmpfile) unless tmpfile.nil?
             @logger.error(msg)
+        ensure
+            File.delete(tmpfile) unless tmpfile.nil? || !File.exist?(tmpfile)
         end
     end
 end
