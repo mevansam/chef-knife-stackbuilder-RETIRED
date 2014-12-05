@@ -19,12 +19,10 @@ module StackBuilder::Chef
                 @logger.debug( "Loading externalized environment variables from " +
                   "'#{env_file}' and merging them with the current process environment." )
 
-                @env_vars = YAML.load_file(env_file)
+                @env_vars = StackBuilder::Common.load_yaml(env_file, ENV)
             else
                 @env_vars = { }
             end
-
-            merge_maps(@env_vars, ENV)
         end
 
         def set_stack(stack, id)
