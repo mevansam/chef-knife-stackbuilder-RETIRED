@@ -81,10 +81,16 @@ module StackBuilder::Common
                             key = lookup_keys.shift
                             include_file = key.start_with?('/') || key.nil? ? key : File.expand_path('../' + key, file)
 
-                            yaml = load_yaml(include_file, env, my)
-                            return lookup_keys.empty? ? yaml
-                                : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
+                            begin
+                                yaml = load_yaml(include_file, env, my)
 
+                                return lookup_keys.empty? ? yaml
+                                    : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
+
+                            rescue Exception => msg
+                                puts "ERROR: Unable include referenced data '#{v}'."
+                                raise msg
+                            end
                         else
                             return v
                     end
