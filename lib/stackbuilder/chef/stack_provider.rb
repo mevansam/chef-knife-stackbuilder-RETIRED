@@ -21,6 +21,9 @@ module StackBuilder::Chef
 
                 @env_vars = StackBuilder::Common.load_yaml(env_file, ENV)
             else
+                @logger.warn( "No environment variable file '#{env_file}' " +
+                    "found. Continuing with empty environemnt variables")
+
                 @env_vars = { }
             end
         end
