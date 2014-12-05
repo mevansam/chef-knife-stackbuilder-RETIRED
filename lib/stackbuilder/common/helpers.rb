@@ -100,7 +100,7 @@ module StackBuilder::Common
                         new_k = eval("\"#{k}\"")
                         if k!=new_k
                             v.delete(k)
-                            new_keys[new_k] = eval_map_values(vv, env, file. my)
+                            new_keys[new_k] = eval_map_values(vv, env, file, my)
                             next
                         end
                     end
