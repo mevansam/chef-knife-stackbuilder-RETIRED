@@ -38,57 +38,75 @@ class Chef
                     "and chef-client will be run."
 
             option :repo_path,
-               :long => "--repo_path REPO_PATH",
+               :long => "--repo-path REPO_PATH",
                :description => "The path to the Chef repo. This is required in order " +
                    "to copy the correct encryption keys from the 'secrets' folder to " +
                    "the target host as well as to read the externalized environment",
                :default => '.'
+
+            option :show_stack_file,
+               :long => "--show-stack-file",
+               :description => "Outputs the parsed yaml of the stack file and exits."
 
             def run
                 time_start = Time.now
 
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
+                repo_path = config[:repo_path]
                 environment = config[:environment] || '_default'
-                stack_file = name_args.first
 
+                stack_file = name_args.first
                 if stack_file=~/[-_+=.0-9a-zA-Z]+/
                     stack_file = Dir.getwd + '/' + stack_file + (stack_file.end_with?('.yml') ? '' : '.yml')
                 end
-
                 unless File.exist?(stack_file)
                     puts "Stack file '#{stack_file}' does not exist."
                     exit 1
                 end
 
-                stack_id = config[:stack_id] || ENV['STACK_ID']
-                stack_overrides = config[:overrides] || ENV['STACK_OVERRIDES']
+                provider = StackBuilder::Chef::NodeProvider.new(repo_path, environment)
+                if config[:show_stack_file]
 
-                stack = StackBuilder::Stack::Stack.new(
-                    StackBuilder::Chef::NodeProvider.new(config[:repo_path], environment),
-                    stack_file,
-                    stack_id,
-                    stack_overrides )
+                    env_vars = provider.get_env_vars
+                    stack = StackBuilder::Common.load_yaml(stack_file, env_vars)
+                    puts("Stack file:\n#{stack.to_yaml}")
 
-                node = config[:node]
-                unless node.nil?
-                    node_name = node.split(':')[0]
-                    node_scale = node.split(':')[1]
-                    node_scale = node_scale.to_i unless node_scale.nil?
+                else
+                    # Validate repo path and update
+                    # environment before building the stack
+                    repo = StackBuilder::Chef::Repo.new(repo_path)
+                    repo.upload_environments(environment)
+
+                    stack_id = config[:stack_id] || ENV['STACK_ID']
+                    stack_overrides = config[:overrides] || ENV['STACK_OVERRIDES']
+
+                    stack = StackBuilder::Stack::Stack.new(
+                        provider,
+                        stack_file,
+                        stack_id,
+                        stack_overrides )
+
+                    node = config[:node]
+                    unless node.nil?
+                        node_name = node.split(':')[0]
+                        node_scale = node.split(':')[1]
+                        node_scale = node_scale.to_i unless node_scale.nil?
+                    end
+
+                    events = nil
+                    if config[:events]
+                        events = events = Set.new(config[:events].split(','))
+                    end
+
+                    stack.orchestrate(events, node_name, node_scale)
                 end
-
-                events = nil
-                if config[:events]
-                    events = events = Set.new(config[:events].split(','))
-                end
-
-                stack.orchestrate(events, node_name, node_scale)
 
             ensure
                 time_elapsed = Time.now - time_start
 
                 $stdout.printf( "\nStack build for '%s' took %d minutes and '%.3f' seconds\n",
-                    stack_file, time_elapsed/60, time_elapsed%60 )
+                    stack_file, time_elapsed/60, time_elapsed%60 ) if !config[:show_stack_file]
             end
         end
 
