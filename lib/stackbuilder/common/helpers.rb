@@ -36,17 +36,19 @@ module StackBuilder::Common
         #
         # Loads a Yaml file and resolves any includes
         #
-        def load_yaml(file, env_vars)
+        def load_yaml(file, env_vars, my = nil)
 
             yaml = YAML.load_file(file)
-            eval_map_values(yaml, env_vars, file)
+            eval_map_values(yaml, env_vars, file, my)
         end
 
         #
         # Evaluates map values against the
         # given map of environment variables
         #
-        def eval_map_values(v, env, file = nil)
+        def eval_map_values(v, env, file = nil, my = nil)
+
+            my ||= v
 
             if v.is_a?(String)
 
@@ -79,7 +81,7 @@ module StackBuilder::Common
                             key = lookup_keys.shift
                             include_file = key.start_with?('/') || key.nil? ? key : File.expand_path('../' + key, file)
 
-                            yaml = load_yaml(include_file, env)
+                            yaml = load_yaml(include_file, env, my)
                             return lookup_keys.empty? ? yaml
                                 : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
 
@@ -98,17 +100,17 @@ module StackBuilder::Common
                         new_k = eval("\"#{k}\"")
                         if k!=new_k
                             v.delete(k)
-                            new_keys[new_k] = eval_map_values(vv, env, file)
+                            new_keys[new_k] = eval_map_values(vv, env, file. my)
                             next
                         end
                     end
 
-                    v[k] = eval_map_values(vv, env, file)
+                    v[k] = eval_map_values(vv, env, file, my)
                 end
                 v.merge!(new_keys) unless new_keys.empty?
 
             elsif v.is_a?(Array)
-                v.map! { |vv| eval_map_values(vv, env, file) }
+                v.map! { |vv| eval_map_values(vv, env, file, my) }
             end
 
             v
