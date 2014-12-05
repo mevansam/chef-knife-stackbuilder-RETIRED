@@ -88,7 +88,7 @@ module StackBuilder::Common
                                     : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
 
                             rescue Exception => msg
-                                puts "ERROR: Unable include referenced data '#{v}'."
+                                puts "ERROR: Unable to include referenced data '#{v}'."
                                 raise msg
                             end
                         else
