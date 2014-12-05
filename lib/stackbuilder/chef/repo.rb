@@ -172,9 +172,7 @@ module StackBuilder::Chef
 
                         env_file = "#{@repo_path}/etc/#{env_name}.yml"
                         env_vars = File.exist?(env_file) ?
-                            YAML.load_file("#{@repo_path}/etc/#{env_name}.yml") : { }
-
-                        merge_maps(env_vars, ENV)
+                            StackBuilder::Common.load_yaml("#{@repo_path}/etc/#{env_name}.yml", ENV) : { }
 
                         secret = get_secret(env_name)
 
