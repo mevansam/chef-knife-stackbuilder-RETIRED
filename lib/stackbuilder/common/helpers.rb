@@ -62,7 +62,7 @@ module StackBuilder::Common
                 elsif v.start_with?('<<')
 
                     k1 = v[/<<(\w*)[\*\$\+]/,1]
-                    env_val = ENV[k1]
+                    env_val = k1.nil? || k1.empty? ? nil : ENV[k1]
 
                     i = k1.length + 3
                     k2 = v[i,v.length-i]
@@ -70,10 +70,22 @@ module StackBuilder::Common
                     case v[i-1]
 
                         when '*'
-                            return env_val || ask(k2) { |q| q.echo = "*" }.to_s
+                            if env_val.nil?
+                                v = ask(k2) { |q| q.echo = "*" }.to_s
+                                ENV[k1] = v unless k1.nil? || k1.empty?
+                            else
+                                v = env_val
+                            end
+                            return v
 
                         when '$'
-                            return env_val || ask(k2).to_s
+                            if env_val.nil?
+                                v = ask(k2).to_s
+                                ENV[k1] = v unless k1.nil? || k1.empty?
+                            else
+                                v = env_val
+                            end
+                            return v
 
                         when '+'
                             lookup_keys = (env_val || k2).split(/[\[\]]/).reject { |k| k.empty? }
