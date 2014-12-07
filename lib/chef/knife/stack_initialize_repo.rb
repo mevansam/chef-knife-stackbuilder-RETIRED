@@ -41,8 +41,8 @@ class Chef
             def run
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
-                cert_path = config[:cert_path]
-                certs = config[:certs]
+                cert_path = getConfig(:cert_path)
+                certs = getConfig(:certs)
 
                 if !cert_path.nil? && !certs.nil?
                     puts "Only one of --cert_path or --certs can be specified."
@@ -51,10 +51,10 @@ class Chef
                 end
 
                 StackBuilder::Chef::Repo.new(
-                    config[:repo_path],
+                    getConfig(:repo_path),
                     cert_path.nil? ? certs : cert_path,
-                    config[:envs],
-                    config[:cookbooks] )
+                    getConfig(:envs),
+                    getConfig(:cookbooks) )
             end
         end
 

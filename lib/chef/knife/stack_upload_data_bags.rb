@@ -25,10 +25,10 @@ class Chef
             def run
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
-                environment = config[:environment]
+                environment = getConfig(:environment)
 
-                repo = StackBuilder::Chef::Repo.new(config[:repo_path])
-                repo.upload_data_bags(environment, config[:data_bag])
+                repo = StackBuilder::Chef::Repo.new(getConfig(:repo_path))
+                repo.upload_data_bags(environment, getConfig(:data_bag))
             end
         end
 

@@ -20,6 +20,11 @@ class Chef
                         StackBuilder::Common::Config.configure(config)
                     end
                 end
+
+                def getConfig(key)
+                    key = key.to_sym
+                    config[key] || Chef::Config[:knife][key]
+                end
             end
 
         end

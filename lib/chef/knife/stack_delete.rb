@@ -25,7 +25,7 @@ class Chef
             def run
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
-                environment = config[:environment] || '_default'
+                environment = getConfig(:environment) || '_default'
                 stack_file = name_args.first
 
                 if stack_file=~/[-_+=.0-9a-zA-Z]+/
@@ -38,9 +38,9 @@ class Chef
                 end
 
                 stack = StackBuilder::Stack::Stack.new(
-                    StackBuilder::Chef::NodeProvider.new(config[:repo_path], environment),
+                    StackBuilder::Chef::NodeProvider.new(getConfig(:repo_path), environment),
                     stack_file,
-                    config[:stack_id] )
+                    getConfig(:stack_id) )
 
                 stack.destroy
             end

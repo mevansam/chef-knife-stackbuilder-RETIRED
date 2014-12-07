@@ -21,19 +21,26 @@ class Chef
                 :description => "The cookbook upload/update"
 
             option :berks_options,
-                :long => "--berks_options options",
+                :long => "--berks-options options",
                 :description => "Comma separated list of berkshelf upload options"
+
+            option :berks_knife_config,
+               :long => "--berks-knife-config options",
+               :description => "Knife configuration file to be passed to Berkshelf"
 
             def run
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
-                repo = StackBuilder::Chef::Repo.new(config[:repo_path])
+                repo = StackBuilder::Chef::Repo.new(getConfig(:repo_path))
 
-                berks_options = config[:berks_options]
+                berks_knife_config = getConfig(:berks_knife_config)
+                ENV['BERKSHELF_CHEF_CONFIG'] = berks_knife_config unless berks_knife_config.nil?
+
+                berks_options = getConfig(:berks_options)
                 unless berks_options.nil?
-                    repo.upload_cookbooks(config[:cookbook], berks_options.gsub(/,/, ' '))
+                    repo.upload_cookbooks(getConfig(:cookbook), berks_options.gsub(/,/, ' '))
                 else
-                    repo.upload_cookbooks(config[:cookbook])
+                    repo.upload_cookbooks(getConfig(:cookbook))
                 end
             end
         end

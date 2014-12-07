@@ -53,8 +53,8 @@ class Chef
 
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
-                repo_path = config[:repo_path]
-                environment = config[:environment] || '_default'
+                repo_path = getConfig(:repo_path)
+                environment = getConfig(:environment) || '_default'
 
                 stack_file = name_args.first
                 if stack_file=~/[-_+=.0-9a-zA-Z]+/
@@ -66,7 +66,7 @@ class Chef
                 end
 
                 provider = StackBuilder::Chef::NodeProvider.new(repo_path, environment)
-                if config[:show_stack_file]
+                if getConfig(:show_stack_file)
 
                     env_vars = provider.get_env_vars
                     stack = StackBuilder::Common.load_yaml(stack_file, env_vars)
@@ -78,8 +78,8 @@ class Chef
                     repo = StackBuilder::Chef::Repo.new(repo_path)
                     repo.upload_environments(environment)
 
-                    stack_id = config[:stack_id] || ENV['STACK_ID']
-                    stack_overrides = config[:overrides] || ENV['STACK_OVERRIDES']
+                    stack_id = getConfig(:stack_id) || ENV['STACK_ID']
+                    stack_overrides = getConfig(:overrides) || ENV['STACK_OVERRIDES']
 
                     stack = StackBuilder::Stack::Stack.new(
                         provider,
@@ -87,7 +87,7 @@ class Chef
                         stack_id,
                         stack_overrides )
 
-                    node = config[:node]
+                    node = getConfig(:node)
                     unless node.nil?
                         node_name = node.split(':')[0]
                         node_scale = node.split(':')[1]
@@ -95,8 +95,8 @@ class Chef
                     end
 
                     events = nil
-                    if config[:events]
-                        events = events = Set.new(config[:events].split(','))
+                    if getConfig(:events)
+                        events = events = Set.new(getConfig(:events).split(','))
                     end
 
                     stack.orchestrate(events, node_name, node_scale)
@@ -106,7 +106,7 @@ class Chef
                 time_elapsed = Time.now - time_start
 
                 $stdout.printf( "\nStack build for '%s' took %d minutes and '%.3f' seconds\n",
-                    stack_file, time_elapsed/60, time_elapsed%60 ) if !config[:show_stack_file]
+                    stack_file, time_elapsed/60, time_elapsed%60 ) if !getConfig(:show_stack_file)
             end
         end
 

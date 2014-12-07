@@ -24,8 +24,8 @@ class Chef
             def run
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
-                repo = StackBuilder::Chef::Repo.new(config[:repo_path])
-                repo.upload_roles(config[:role])
+                repo = StackBuilder::Chef::Repo.new(getConfig(:repo_path))
+                repo.upload_roles(getConfig(:role))
             end
         end
 

@@ -19,9 +19,9 @@ class Chef
             def run
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
-                environment = config[:environment]
+                environment = getConfig(:environment)
 
-                repo = StackBuilder::Chef::Repo.new(config[:repo_path])
+                repo = StackBuilder::Chef::Repo.new(getConfig(:repo_path))
 
                 repo.upload_cookbooks
                 repo.upload_roles
