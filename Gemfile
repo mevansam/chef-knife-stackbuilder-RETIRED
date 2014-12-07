@@ -5,7 +5,10 @@ gemspec
 
 gem 'rake'
 
-gem 'chef', '>= 0.11'
+# Note: Upgrading to 12.0.0 causes knife to not
+# encrypt data bags when called programmatically.
+gem 'chef', '~> 11.16.4'
+
 gem 'chef-zero'
 gem 'berkshelf'
 gem 'highline'
