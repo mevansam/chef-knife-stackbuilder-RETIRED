@@ -23,6 +23,9 @@ class Chef
 
                 repo = StackBuilder::Chef::Repo.new(getConfig(:repo_path))
 
+                berks_knife_config = getConfig(:berks_knife_config)
+                ENV['BERKSHELF_CHEF_CONFIG'] = berks_knife_config unless berks_knife_config.nil?
+
                 repo.upload_cookbooks
                 repo.upload_roles
 
