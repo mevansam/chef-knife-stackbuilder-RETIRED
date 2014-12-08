@@ -19,7 +19,7 @@ class Chef
                 :default => '.'
 
             option :data_bag,
-                :long => "--data_bag NAME",
+                :long => "--data-bag NAME",
                 :description => "The data bag to upload/update"
 
             def run
