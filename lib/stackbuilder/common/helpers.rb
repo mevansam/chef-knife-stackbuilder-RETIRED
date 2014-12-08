@@ -55,7 +55,12 @@ module StackBuilder::Common
                 if v=~/#\{.*\}/
                     begin
                         return eval("\"#{v.gsub(/\"/, "\\\"")}\"")
-                    rescue
+
+                    rescue Exception => msg
+
+                        StackBuilder::Common::Config.logger.debug( "Error evaluating configuration " +
+                            "variable '#{v}': #{msg}\nenv = #{env}\nmy = #{my}")
+
                         return v
                     end
 
