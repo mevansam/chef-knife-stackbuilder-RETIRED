@@ -374,7 +374,8 @@ module StackBuilder::Chef
 
             knife_cmd = Chef::Knife::DataBagFromFile.new
             knife_cmd.name_args = [ data_bag_name, tmpfile ]
-            knife_cmd.config[:secret] = get_secret(server_env_name)
+            knife_cmd.config[:encrypt] = true
+            Chef::Config[:knife][:secret] = get_secret(server_env_name)
             run_knife(knife_cmd)
 
             puts "Uploaded '#{server_env_name}' certificate for server '#{server_name}' " +
@@ -402,7 +403,8 @@ module StackBuilder::Chef
 
                 knife_cmd = Chef::Knife::DataBagFromFile.new
                 knife_cmd.name_args = [ data_bag_name, tmpfile ]
-                knife_cmd.config[:secret] = secret
+                knife_cmd.config[:encrypt] = true
+                Chef::Config[:knife][:secret] = secret
                 run_knife(knife_cmd)
 
                 File.delete(tmpfile)
@@ -419,7 +421,7 @@ module StackBuilder::Chef
 
         def upload_role(role_file)
 
-            role_content = eval_map_values(JSON.load(File.new(role_file, 'r')), ENV)
+            role_content = eval_map_values(JSON.load(File.new(role_file, 'r')).to_hash, ENV.to_hash)
 
             role_name = role_content.is_a?(Chef::Role) ? role_content.name : role_content['name']
             @logger.debug("Uploading role '#{role_name}' with contents:\n#{role_content.to_yaml}")

@@ -38,7 +38,6 @@ module StackBuilder::Chef
                 " which it does not match the environment '#{@environment}' provided." \
                 unless stack_environment.nil? || stack_environment==@environment
 
-            Chef::Config[:chef_server_url] = stack['chef_server_url'] if stack.has_key?('chef_server_url')
             Chef::Config[:environment] = @environment
         end
 
