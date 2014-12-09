@@ -56,8 +56,11 @@ class Chef
                 repo_path = getConfig(:repo_path)
                 environment = getConfig(:environment) || '_default'
 
+                stack_id = getConfig(:stack_id) || ENV['STACK_ID']
+                stack_overrides = getConfig(:overrides) || ENV['STACK_OVERRIDES']
+
                 stack_file = name_args.first
-                if stack_file=~/[-_+=.0-9a-zA-Z]+/
+                if stack_file=~/^[-_+=.0-9a-zA-Z]+$/
                     stack_file = Dir.getwd + '/' + stack_file + (stack_file.end_with?('.yml') ? '' : '.yml')
                 end
                 unless File.exist?(stack_file)
@@ -78,9 +81,6 @@ class Chef
                     repo = StackBuilder::Chef::Repo.new(repo_path)
                     repo.upload_environments(environment)
 
-                    stack_id = getConfig(:stack_id) || ENV['STACK_ID']
-                    stack_overrides = getConfig(:overrides) || ENV['STACK_OVERRIDES']
-
                     stack = StackBuilder::Stack::Stack.new(
                         provider,
                         stack_file,
@@ -100,13 +100,14 @@ class Chef
                     end
 
                     stack.orchestrate(events, node_name, node_scale)
+                    stack_id = stack.id
                 end
 
             ensure
                 time_elapsed = Time.now - time_start
 
-                $stdout.printf( "\nStack build for '%s' took %d minutes and '%.3f' seconds\n",
-                    stack_file, time_elapsed/60, time_elapsed%60 ) if !getConfig(:show_stack_file)
+                $stdout.printf( "\nStack '%s' build using the '%s' template took %d minutes and '%.3f' seconds\n",
+                    stack_id, stack_file, time_elapsed/60, time_elapsed%60 ) if !getConfig(:show_stack_file)
             end
         end
 

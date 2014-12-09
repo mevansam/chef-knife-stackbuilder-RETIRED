@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
     s.bindir       = "bin"
     s.executables  = `find bin -name '*' -type f -exec basename {} \\;`.gsub(/\.\//,"").split("\n")
 
-    s.add_dependency("chef", "~> 11.16.4")
-    s.add_dependency("knife-attribute", "~> 1.0.3")
-    s.add_dependency("highline", "~> 1.6.21")
+    s.add_dependency("chef", "~> 12")
+    s.add_dependency("knife-attribute")
+    s.add_dependency("highline")
 end
