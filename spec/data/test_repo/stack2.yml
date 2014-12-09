@@ -3,46 +3,43 @@
 name: Stack1
 
 environment: TEST
-chef_server_url: http://192.168.50.1:9999
-
-knife:
-  options:
-    identity_file: ~/.vagrant/insecure_key
-    host_key_verify: false
-    ssh_user: vagrant
-    ssh_port: 22
-    sudo: true
-  create:
-    class: Chef::Knife::VagrantServerCreate
-    name_key: chef_node_name
-    options:
-      vagrant_dir: ~/.vagrant
-      provider: virtualbox
-      box: chef/ubuntu-14.04
-      box_url: https://vagrantcloud.com/chef/boxes/ubuntu-14.04
-      memsize: 512
-      subnet: 192.168.50.0/24
-      port_forward: {}
-      share_folders: []
-      use_cachier: false
-      distro: chef-full
-      inline_config: |
-        config.ohai.enable = true
-        config.ohai.primary_nic = "eth1"
-        config.vm.provision "shell", inline: "mkdir -p /etc/chef"
-        config.vm.provision "shell", inline: "apt-get update"
-      run_list:
-      - recipe[ohai]
-  delete:
-    class: Chef::Knife::VagrantServerDelete
-    options:
-      vagrant_dir: ~/.vagrant
-      "yes": true
 
 stack:
 
 - node: test
-  knife: *knife
+  knife:
+    options:
+      identity_file: ~/.vagrant/insecure_key
+      host_key_verify: false
+      ssh_user: vagrant
+      ssh_port: 22
+      sudo: true
+    create:
+      class: Chef::Knife::VagrantServerCreate
+      name_key: chef_node_name
+      options:
+        vagrant_dir: ~/.vagrant
+        provider: virtualbox
+        box: chef/ubuntu-14.04
+        box_url: https://vagrantcloud.com/chef/boxes/ubuntu-14.04
+        memsize: 512
+        subnet: 192.168.50.0/24
+        port_forward: {}
+        share_folders: []
+        use_cachier: false
+        distro: chef-full
+        inline_config: |
+          config.ohai.enable = true
+          config.ohai.primary_nic = "eth1"
+          config.vm.provision "shell", inline: "mkdir -p /etc/chef"
+          config.vm.provision "shell", inline: "apt-get update"
+        run_list:
+        - recipe[ohai]
+    delete:
+      class: Chef::Knife::VagrantServerDelete
+      options:
+        vagrant_dir: ~/.vagrant
+        "yes": true
   depends_on:
   attributes:
   run_on_event:

@@ -6,7 +6,7 @@
     "default_attributes": {
     },
     "override_attributes": {
-        "env_value": "#{env['ENV_KEY2']}"
+        "env_value": "#{ENV['ENV_KEY2']}"
     },
     "run_list": [
         "recipe[ohai]",

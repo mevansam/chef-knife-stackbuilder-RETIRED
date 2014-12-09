@@ -35,20 +35,20 @@ describe StackBuilder::Chef do
         repo = StackBuilder::Chef::Repo.new(
             @repo_path,
             "wpweb.stackbuilder.org,wpdb.stackbuilder.org",
-            'DEV,TEST,PROD',
+            'DEV,TEST',
             'mysql:=5.6.1, wordpress:=2.3.0' )
 
         # Copy the test data into the repo
         system("cp -fr #{@test_data_path}/test_repo/* #{@repo_path}")
 
-        expect(repo.environments).to match_array([ 'DEV', 'TEST', 'PROD' ])
+        expect(repo.environments).to match_array([ 'DEV', 'TEST' ])
 
         expect(Dir["#{@repo_path}/etc/**/*.yml"].map { |f| f[/\/(\w+).yml$/, 1] } )
-            .to match_array([ 'DEV', 'TEST', 'PROD' ])
+            .to match_array([ 'DEV', 'TEST' ])
         expect(Dir["#{@repo_path}/environments/**/*.rb"].map { |f| f[/\/(\w+).rb$/, 1] } )
-            .to match_array([ 'DEV', 'TEST', 'PROD' ])
+            .to match_array([ 'DEV', 'TEST' ])
         expect(Dir["#{@repo_path}/*.yml"].map { |f| f[/\/(\w+).yml$/, 1] } )
-            .to match_array([ 'stack1', 'stack2', 'stack3' ])
+            .to match_array([ 'stack1', 'stack2' ])
 
         expect(File.exist?("#{@repo_path}/.certs/cacert.pem")).to be true
         [ 'wpweb.stackbuilder.org', 'wpdb.stackbuilder.org' ].each do |server|
@@ -68,8 +68,7 @@ describe StackBuilder::Chef do
 
         # Repo does not exist so it cannot be loaded
         repo = StackBuilder::Chef::Repo.new(@repo_path)
-        expect(repo.environments).to match_array([ 'DEV', 'TEST', 'PROD' ])
-        expect(repo.stacks).to match_array([ 'Stack1', 'Stack2', 'Stack3' ])
+        expect(repo.environments).to match_array([ 'DEV', 'TEST' ])
 
         knife_cmd = Chef::Knife::StackUploadEnvironments.new
         knife_cmd.config[:repo_path] = @repo_path
@@ -102,7 +101,7 @@ describe StackBuilder::Chef do
 
         cacert = IO.read("#{@repo_path}/.certs/cacert.pem")
 
-        [ 'DEV', 'TEST', 'PROD' ].each do |env_name|
+        [ 'DEV', 'TEST' ].each do |env_name|
 
             data_bag_name = 'certificates-' + env_name
 
@@ -147,7 +146,7 @@ describe StackBuilder::Chef do
 
                     knife_cmd = Chef::Knife::DataBagShow.new
                     knife_cmd.name_args = [ data_bag_name, data_bag_item ]
-                    knife_cmd.config[:secret] = repo.get_secret(env_name)
+                    Chef::Config[:knife][:secret] = repo.get_secret(env_name)
                     data_bag_item_value = YAML.load(run_knife(knife_cmd))
                     value = data_bag_item_value["value"]
 

@@ -3,7 +3,6 @@
 name: Stack1
 
 environment: DEV
-chef_server_url: http://192.168.50.1:9999
 
 # Common referenced values
 common:
@@ -51,7 +50,7 @@ stack:
       server_debian_password: *password
   run_list:
   - role[wordpress_db]
-  run_on_event: <<+[../common/life_cycle_events.yml][wordpress_database][run_on_event]
+  run_on_event: <<+[common/life_cycle_events.yml][wordpress_database][run_on_event]
 
 - node: wordpress
   knife: *knife
