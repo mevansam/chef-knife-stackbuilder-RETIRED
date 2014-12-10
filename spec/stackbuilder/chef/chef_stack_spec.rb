@@ -47,7 +47,7 @@ describe StackBuilder::Chef do
         knife_cmd.config[:repo_path] = @repo_path
         knife_cmd.config[:certs] = 'wpweb.stackbuilder.org,wpdb.stackbuilder.org'
         knife_cmd.config[:envs] = 'DEV,TEST,PROD'
-        knife_cmd.config[:cookbooks] = 'ohai:=2.0.1,haproxy:=1.6.6,mysql:=5.6.1,wordpress:=2.3.0'
+        knife_cmd.config[:cookbooks] = 'ohai:=2.0.1,haproxy:=1.6.6,mysql:=5.6.1,apache2:=2.0.0,wordpress:=2.3.0'
         knife_cmd.run
 
         # Copy the test data into the repo

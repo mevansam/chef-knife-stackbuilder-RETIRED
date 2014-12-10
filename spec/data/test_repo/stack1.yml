@@ -57,8 +57,6 @@ stack:
   depends_on:
   - database
   attributes:
-    build-essential:
-      compile_time: true
     wordpress:
       db:
         name: wordpress

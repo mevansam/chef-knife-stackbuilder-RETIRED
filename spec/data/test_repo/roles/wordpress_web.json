@@ -6,7 +6,10 @@
     "default_attributes": {
     },
     "override_attributes": {
-        "env_value": "#{ENV['ENV_KEY1']}"
+        "env_value": "#{ENV['ENV_KEY1']}",
+        "build-essential": {
+            "compile_time": true
+        }
     },
     "run_list": [
         "recipe[ohai]",
