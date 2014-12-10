@@ -7,7 +7,7 @@ module StackBuilder::Stack
     class NodeProvider
 
         def set_stack(stack, id)
-            raise NotImplemented, 'NodeProvider.set_stack_id'
+            raise StackBuilder::Common::NotImplemented, 'NodeProvider.set_stack_id'
         end
 
         def get_env_vars
@@ -15,7 +15,7 @@ module StackBuilder::Stack
         end
 
         def get_node_manager(node_config)
-            raise NotImplemented, 'NodeProvider.get_node_manager'
+            raise StackBuilder::Common::NotImplemented, 'NodeProvider.get_node_manager'
         end
     end
 end
