@@ -13,6 +13,9 @@ module StackBuilder::Chef
             @repo_path = File.expand_path(repo_path)
             @environment = environment
 
+            Chef::Config[:environment] = @environment
+            Chef::Config[:environment_path] = @repo_path + '/environments'
+
             env_file = "#{@repo_path}/etc/#{@environment}.yml"
             if File.exist?(env_file)
 
@@ -37,8 +40,6 @@ module StackBuilder::Chef
             raise ArgmentError, "Stack file is fixed to the environment '#{stack_environment}', " +
                 " which it does not match the environment '#{@environment}' provided." \
                 unless stack_environment.nil? || stack_environment==@environment
-
-            Chef::Config[:environment] = @environment
         end
 
         def get_env_vars
@@ -56,7 +57,12 @@ module StackBuilder::Chef
 
                     case knife_config['plugin']
                         when 'vagrant'
-                            return StackBuilder::Chef::VagrantNodeManager.new(@id, node_config, @repo_path, @environment)
+                            return StackBuilder::Chef::VagrantNodeManager.new(
+                                @id, node_config, @repo_path, @environment)
+
+                        when 'container'
+                            return StackBuilder::Chef::ContainerNodeManager.new(
+                                @id, node_config, @repo_path, @environment)
 
                         # TODO: Refactor so that managers are pluggable from other gems
 

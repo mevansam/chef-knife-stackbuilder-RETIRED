@@ -9,9 +9,14 @@ module StackBuilder::Chef
         include ERB::Util
 
         attr_accessor :name
+        attr_accessor :node_id
 
         attr_accessor :run_list
         attr_accessor :run_on_event
+
+        attr_accessor :ssh_user
+        attr_accessor :ssh_password
+        attr_accessor :ssh_identity_file
 
         def initialize(id, node_config, repo_path, environment)
 
@@ -25,7 +30,7 @@ module StackBuilder::Chef
             @run_on_event = node_config['run_on_event']
 
             @knife_config = node_config['knife']
-            if @knife_config
+            if @knife_config && @knife_config.has_key?('options')
 
                 raise ArgumentError, 'An ssh user needs to be provided for bootstrap and knife ssh.' \
                     unless @knife_config['options'].has_key?('ssh_user')
@@ -36,11 +41,12 @@ module StackBuilder::Chef
 
                 @ssh_user = @knife_config['options']['ssh_user']
                 @ssh_password = @knife_config['options']['ssh_password']
-                @identity_file = @knife_config['options']['identity_file']
-
-                @env_key_file = "#{repo_path}/secrets/#{environment}"
-                @env_key_file = nil unless File.exist?(@env_key_file)
+                @ssh_identity_file = @knife_config['options']['identity_file']
+                @ssh_identity_file.gsub!(/~\//, Dir.home + '/') unless @ssh_identity_file.nil?
             end
+
+            @env_key_file = "#{repo_path}/secrets/#{environment}"
+            @env_key_file = nil unless File.exist?(@env_key_file)
         end
 
         def get_name
@@ -73,7 +79,9 @@ module StackBuilder::Chef
 
             unless @env_key_file.nil?
                 env_key = IO.read(@env_key_file)
-                knife_ssh(name, "echo '#{env_key}' > /etc/chef/encrypted_data_bag_secret")
+                knife_ssh( name,
+                    "echo '#{env_key}' > /etc/chef/encrypted_data_bag_secret\n" +
+                    "chmod 0600 /etc/chef/encrypted_data_bag_secret" )
             end
 
         rescue Exception => msg
@@ -84,7 +92,7 @@ module StackBuilder::Chef
         end
 
         def create_vm(name, knife_config)
-            raise NotImplemented, 'HostNodeManager.create_vm'
+            raise StackBuilder::Common::NotImplemented, 'HostNodeManager.create_vm'
         end
 
         def process(index, events, attributes, target = nil)
@@ -172,7 +180,7 @@ module StackBuilder::Chef
         end
 
         def delete_vm(name, knife_config)
-            raise NotImplemented, 'HostNodeManager.delete_vm'
+            raise StackBuilder::Common::NotImplemented, 'HostNodeManager.delete_vm'
         end
 
         def config_knife(knife_cmd, options)

@@ -116,6 +116,10 @@ GEM
     json (1.8.1)
     knife-attribute (1.0.3)
       chef (>= 0.11)
+    knife-container (0.2.4)
+      chef (>= 11.0)
+      json (>= 1.4.4, <= 1.8.1)
+      mixlib-config (~> 2.0)
     libyajl2 (1.2.0)
     listen (2.8.3)
       celluloid (>= 0.15.2)
@@ -234,6 +238,7 @@ DEPENDENCIES
   guard-rspec
   highline
   knife-attribute
+  knife-container
   knife-stackbuilder!
   knife-vagrant2!
   rake
