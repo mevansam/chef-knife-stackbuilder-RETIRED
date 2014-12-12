@@ -72,9 +72,15 @@ Build the stack.
 
 ```
 $ knife stack build stack1 --stack-id alpha --environment dev
+.
+.
+Stack 'alpha' build using the '/Users/john/workspace/wordpress/stack1.yml' template took 5 minutes and '16.171' seconds
 ```
+If the build succeeds then Wordpress should be available at [http://192.168.50.2/](http://192.168.50.2/).
 
 > If the ```stack-id``` is not provided when building then an UUID will be generated. You can provide your own ```stack-id``` so it is easier to keep track of the stacks you have created.
+
+If the
 
 Delete the stack.
 
@@ -116,7 +122,7 @@ If Chef is not tracking the nodes listed by the Vagrant plugin then you need to 
 $ knife vagrant server delete stack1-node-alpha-0 --yes --vagrant-dir ~/.vagrant
 ```
 
-Lastly make sure that a folder for the VM does not exist in the folder where the Vagrant plugin keeps track of the VMs it creates
+Lastly make sure that a folder for the VM does not exist in the folder where the Vagrant plugin keeps track of the VMs it creates.
 
 ```
 $ ls -l ~/.vagrant

@@ -1,5 +1,7 @@
 # Knife StackBuilder plugin
 
+Check out the brief [tutorial](docs/how-to.md) on setting up a repository for a stack and building it.
+
 ## Design
 
 ### Berkshelf Cookbook Repository Management
