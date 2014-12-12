@@ -12,13 +12,13 @@ class Chef
             banner 'knife stack initialize repo (options)'
 
             option :repo_path,
-                :long => "--repo_path REPO_PATH",
+                :long => "--repo-path REPO_PATH",
                 :description => "The path where a skeleton Chef Berkshelf repo will be created. " +
                     "If this is no provided the current working directory will be initialized.",
                 :default => '.'
 
             option :cert_path,
-                :long => "--cert_path CERT_PATH",
+                :long => "--cert-path CERT_PATH",
                 :description => "Path containing folders with server certificates. Each folder " +
                     "within this path should be named after the server for which the certs are " +
                     "meant post-fixed by _{ENV_NAME}. If name is not post-fixed then the cert " +
@@ -29,8 +29,8 @@ class Chef
                 :description => "Comma separated list of server names for which self-signed " +
                     "certificates will be generated."
 
-            option :envs,
-               :long => "--stack_envs ENVIRONMENTS",
+            option :stack_environments,
+               :long => "--stack-environments ENVIRONMENTS",
                :description => "Comma separated list of environments to generate"
 
             option :cookbooks,
@@ -53,7 +53,7 @@ class Chef
                 StackBuilder::Chef::Repo.new(
                     getConfig(:repo_path),
                     cert_path.nil? ? certs : cert_path,
-                    getConfig(:envs),
+                    getConfig(:stack_environments),
                     getConfig(:cookbooks) )
             end
         end
