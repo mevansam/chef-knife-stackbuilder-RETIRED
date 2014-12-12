@@ -1,5 +1,6 @@
 source 'https://supermarket.getchef.com'
 
+cookbook 'ohai', '~> 2.0.1'
 <% @berks_cookbooks.each do |cookbook| -%>
 cookbook '<%= cookbook[0] %>'<% unless cookbook[1].empty? %>, '<%= cookbook[1] %>'<% end %>
 <% end -%>

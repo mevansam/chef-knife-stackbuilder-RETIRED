@@ -1,45 +1,44 @@
 # Stack
-name: Stack skeleton for <%= @environment %>
+name: <%= @stack_name %>
 environment: <%= @environment %>
 
+# Knife bootstrap and ssh attributes. The plugin attribute
+# is used to determine which knife plugin to use for node
+# creation. If a plugin is not provided it would be assumed
+# that the host exists.
+knife: &knife
+  plugin: vagrant
+  options:
+    box: chef/ubuntu-14.04
+    box_url: https://vagrantcloud.com/chef/boxes/ubuntu-14.04
+    # Vagrant sets up a NAT for the VM. We need to setup a host
+    # only network so the vm can talk to chef zero on host.
+    subnet: 192.168.50.0/24
+    identity_file: ~/.vagrant/insecure_key
+    ssh_user: vagrant
+    sudo: true
+    # inline config to use vagrant-ohai plugin to install ohai
+    # plugin to capture ip from eth1 instead of eth0 as well
+    # as run an apt update.
+    inline_config: |
+      config.ohai.enable = true
+      config.ohai.primary_nic = "eth1"
+      config.vm.provision "shell", inline: "mkdir -p /etc/chef"
+      config.vm.provision "shell", inline: "apt-get update"
+    # bootstrap run-list. This will be replaced
+    # if a node run list is provided. We run the
+    # ohai cookbook to ensure that the node's
+    # ipaddress is populated with the address
+    # of eth1 and not the default eth0
+    run_list:
+    - recipe[ohai]
+
 stack:
-- node: server1
-  depends_on:
-  type: type1
+
+- node: <%= @stack_name %>-node
+  knife: *knife
   run_list:
-  host:
-    name: host1
-    domain: $DOMAIN
-    ip:
-    knife:
-      plugin:
-      args:
-
-- node: server2
-  depends_on: server1
-  type: type1
-  run_list:
-  host:
-    name: host1
-    domain: $DOMAIN
-    ip:
-    knife:
-      plugin:
-      args:
-
-- node: server2
-  depends_on: server1
-  type: type2
-  run_list:
-  host:
-    name: host1
-    domain: $DOMAIN
-    ip:
-    knife:
-      plugin:
-      args:
-
----
-# Environment
-env: |
-
+<% @berks_cookbooks.each do |cookbook| -%>
+  - recipe[ohai]
+  - recipe[<%= cookbook[0] %>]
+<% end -%>
