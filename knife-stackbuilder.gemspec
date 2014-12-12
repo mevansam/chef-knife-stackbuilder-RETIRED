@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
     #s.files        = `git ls-files -- bin/* lib/*`.split("\n") + %w(README.md Rakefile)
     #s.test_files   = `git ls-files -- spec/*`.split("\n")
 
-    s.files        = `find lib -name '*.rb' -type f -print`.gsub(/\.\//,"").split("\n") + 
+    s.files        = `find lib -name '*' -type f -print`.gsub(/\.\//,"").split("\n") + 
                      `find bin -name '*' -type f -print`.gsub(/\.\//,"").split("\n") + 
                      %w(README.md Rakefile)
 
