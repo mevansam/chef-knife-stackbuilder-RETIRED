@@ -79,8 +79,9 @@ module StackBuilder::Chef
                     envfile = ERB.new(envfile_template, nil, '-<>').result(binding)
                     File.open("#{@repo_path}/environments/#{env_name}.rb", 'w+') { |f| f.write(envfile) }
 
+                    @stack_name = 'stack' + i.to_s
                     stackfile = ERB.new(stackfile_template, nil, '-<>').result(binding)
-                    File.open("#{@repo_path}/stack#{i}.yml", 'w+') { |f| f.write(stackfile) }
+                    File.open("#{@repo_path}/#{@stack_name}.yml", 'w+') { |f| f.write(stackfile) }
                     i += 1
                 end
                 @environment = nil
@@ -99,7 +100,10 @@ module StackBuilder::Chef
 
                 # TODO: Handle JSON environment files. JSON files should be processed similar to roles.
 
-                knife_cmd.name_args = [ "#{@repo_path}/environments/#{env_name}.rb" ]
+                env_file = "#{@repo_path}/environments/#{env_name}.rb"
+                FileUtils.touch(env_file)
+
+                knife_cmd.name_args = [ env_file ]
                 run_knife(knife_cmd)
                 puts "Uploaded environment '#{env_name}' to '#{Chef::Config.chef_server_url}'."
             end
@@ -138,10 +142,12 @@ module StackBuilder::Chef
 
                             environments = (environment.nil? ? @environments : [ environment ])
                             environments.each do |env_name|
+                                FileUtils.touch("#{@repo_path}/environments/#{env_name}.rb")
                                 upload_certificate(server_cert_dir, server_name, env_name)
                             end
 
                         elsif environment.nil? || environment==server_env_name
+                            FileUtils.touch("#{@repo_path}/environments/#{server_env_name}.rb")
                             upload_certificate(server_cert_dir, server_name, server_env_name)
                         end
                     end
@@ -162,6 +168,8 @@ module StackBuilder::Chef
                 if data_bag.nil? || data_bag==data_bag_name
 
                     environments.each do |env_name|
+
+                        FileUtils.touch("#{@repo_path}/environments/#{env_name}.rb")
 
                         data_bag_env = data_bag_name + '-' + env_name
                         unless data_bag_list.include?(data_bag_env)
@@ -190,6 +198,8 @@ module StackBuilder::Chef
             berksfile_path = "#{@repo_path}/Berksfile"
             debug_flag = (@logger.debug? ? ' --debug' : '')
 
+            FileUtils.touch(Dir.glob("#{@repo_path}/environments/*.rb"))
+
             # Need to invoke Berkshelf from the shell as directly invoking it causes
             # cookbook validation to throw an exception when 'Berksfile.upload' is
             # called.
@@ -212,6 +222,8 @@ module StackBuilder::Chef
         end
 
         def upload_roles(role = nil)
+
+            FileUtils.touch(Dir.glob("#{@repo_path}/environments/*.rb"))
 
             if role.nil?
                 Dir["#{@repo_path}/roles/*.json"].each do |role_file|
