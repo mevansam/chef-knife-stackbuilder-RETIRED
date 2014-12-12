@@ -25,5 +25,7 @@ Gem::Specification.new do |s|
 
     s.add_dependency("chef", "~> 12")
     s.add_dependency("knife-attribute")
+    s.add_dependency("knife-container")
+    s.add_dependency("knife-vagrant3")
     s.add_dependency("highline")
 end

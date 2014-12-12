@@ -13,7 +13,7 @@ gem 'highline'
 
 gem 'knife-attribute'
 gem 'knife-container'
-gem 'knife-vagrant2', :git => 'https://github.com/mevansam/knife-vagrant2.git'
+gem 'knife-vagrant3'
 
 group :development, :test do
 
