@@ -7,8 +7,13 @@ module StackBuilder::Common
         #
         # Returns whether platform is a nix OS
         #
-        def is_nix_os
-            return RbConfig::CONFIG["host_os"] =~ /linux|freebsd|darwin|unix/
+        def is_nix_os?
+            RbConfig::CONFIG["host_os"] =~ /linux|freebsd|darwin|unix/
+        end
+
+        # Return whether platform is a OS X
+        def is_os_x?
+            RbConfig::CONFIG["host_os"] =~ /darwin/
         end
         
         #
