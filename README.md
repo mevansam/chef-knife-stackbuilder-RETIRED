@@ -22,8 +22,9 @@ Check out the brief [tutorial](docs/how-to.md) on setting up a repository for a 
 
 ## To Do:
 
-* Use Chef Pushy instead of Knife SSH
-* Add option to execute Chef Push jobs on events
+* Use Chef Pushy instead of Knife SSH and add option to execute Chef Push jobs on events
+* The repo needs to detect changes to cookbooks, roles, data bags etc and upload only the changes
+* Load custom provider gems by inspecting the installed gems
 
 ## Contributing
 
