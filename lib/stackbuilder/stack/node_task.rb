@@ -49,22 +49,14 @@ module StackBuilder::Stack
                     @sync = SYNC_NONE
             end
 
-            if node_config.has_key?('targets')
-
-                @logger.warn("Ignoring 'scale' attribute for '#{@name}' as that node has targets.") \
-                    if node_config.has_key?("scale")
-
-                @scale = 0
+            current_scale = manager.get_scale
+            if current_scale==0
+                @scale = (node_config.has_key?("scale") ? node_config["scale"] : 1)
             else
-                current_scale = manager.get_scale
-                if current_scale==0
-                    @scale = (node_config.has_key?("scale") ? node_config["scale"] : 1)
-                else
-                    @scale = current_scale
-                end
-
-                raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if @scale < 1
+                @scale = current_scale
             end
+
+            raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if @scale < 1
             @prev_scale = @scale
 
             @targets = [ ]
@@ -138,7 +130,7 @@ module StackBuilder::Stack
                     # Scale Down
 
                     delete_events = Set.new([ "stop", "uninstall" ])
-                    @scale.step(current_scale - 1).to_a.each do |i|
+                    @scale.step(current_scale - 1) do |i|
 
                         resource_sync = @resource_sync[i]
                         resource_sync.wait
@@ -208,8 +200,9 @@ module StackBuilder::Stack
                 end
 
                 @prev_scale = current_scale
-                @manager.set_scale(@scale)
             end
+
+            @manager.set_scale(@scale)
 
             threads
         end
@@ -219,25 +212,26 @@ module StackBuilder::Stack
             threads = [ ]
 
             scale = (@deleted ? @manager.get_scale : @scale)
-            if scale > 0
+            if @targets.empty?
 
-                if @sync == "first"
-                    @manager.process(scale, events, self.parse_attributes(@attributes, 0))
-                    scale -= 1
-                end
+                if scale > 0
 
-                if @sync == "all"
-                    scale.times do |i|
-                        @manager.process(i, events, self.parse_attributes(@attributes, i))
+                    if @sync == "first"
+                        @manager.process(scale, events, self.parse_attributes(@attributes, 0))
+                        scale -= 1
                     end
-                else
-                    scale.times do |i|
-                        spawn_processing(i, events, threads)
+
+                    if @sync == "all"
+                        scale.times do |i|
+                            @manager.process(i, events, self.parse_attributes(@attributes, i))
+                        end
+                    else
+                        scale.times do |i|
+                            spawn_processing(i, events, threads)
+                        end
                     end
                 end
-
-            elsif !@targets.empty?
-
+            else
                 @targets.each do |t|
                     t.scale.times do |i|
                         spawn_processing(i, events, threads, t)

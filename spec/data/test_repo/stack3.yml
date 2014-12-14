@@ -64,7 +64,23 @@ stack:
   knife:
     plugin: container
     image: chef/ubuntu-14.04
+    # The following docker build commands will
+    # be added after the FROM directive in the
+    # Dockerfile.
     inline_dockerfile: |
       RUN apt-get update
     run_list:
     - role[wordpress_web]
+    # The service process launched by runit
+    container_service:
+      wordpress:
+        command: /usr/sbin/apache2ctl -D FOREGROUND
+    # The container start options. Ports will
+    # be bound to dynamic ports unless specified
+    # explicitly as host_port:container_port. Container
+    # will also be launched in a detached state.
+    # Additional options for the docker run command
+    # can be specified via the 'options' key.
+    container_start:
+      ports:
+        wordpress: 80

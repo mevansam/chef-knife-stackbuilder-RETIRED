@@ -26,6 +26,8 @@ module StackBuilder::Chef
             @name = node_config['node']
             @node_id = @name + '-' + @id
 
+            @environment = environment
+
             @run_list = node_config.has_key?('run_list') ? node_config['run_list'].join(',') : nil
             @run_on_event = node_config['run_on_event']
 

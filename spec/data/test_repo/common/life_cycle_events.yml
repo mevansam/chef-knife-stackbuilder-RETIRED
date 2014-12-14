@@ -1,8 +1,9 @@
 wordpress_database:
   run_on_event:
+    install: >
+      apt-get install -y docker.io
     configure: >
       mysql --user=root --password=<%= attributes['mysql']['server_root_password'] %> -e "
         create database if not exists wordpress;
         grant all privileges on wordpress.* to 'wordpress'@'%'
-          identified by '<%= attributes['mysql']['server_root_password'] %>';
-      "
+          identified by '<%= attributes['mysql']['server_root_password'] %>';"
