@@ -385,5 +385,71 @@ module StackBuilder::Common
             $stderr = previous_stderr
         end
 
+        # Creates and ssh session to the given host using the given credentials
+        def ssh_create(host, user, key)
+
+            if key.start_with?('-----BEGIN RSA PRIVATE KEY-----')
+                ssh = Net::SSH.start(host, user,
+                    {
+                        :key_data => key,
+                        :user_known_hosts_file => "/dev/null"
+                    } )
+            elsif File.exist?(key)
+                ssh = Net::SSH.start(host, user,
+                    {
+                        :key_data => IO.read(key),
+                        :user_known_hosts_file => "/dev/null"
+                    } )
+            else
+                ssh = Net::SSH.start(host, user,
+                    {
+                        :password => key,
+                        :user_known_hosts_file => "/dev/null"
+                    } )
+            end
+
+            ssh
+        end
+
+        # Executes a remote shell command and returns exit status
+        def ssh_exec!(ssh, command)
+
+            stdout_data = ""
+            stderr_data = ""
+            exit_code = nil
+            exit_signal = nil
+
+            ssh.open_channel do |channel|
+                channel.exec(command) do |ch, success|
+                    unless success
+                        abort "FAILED: couldn't execute command (ssh.channel.exec)"
+                    end
+                    channel.on_data do |ch,data|
+                        stdout_data+=data
+                    end
+
+                    channel.on_extended_data do |ch,type,data|
+                        stderr_data+=data
+                    end
+
+                    channel.on_request("exit-status") do |ch,data|
+                        exit_code = data.read_long
+                    end
+
+                    channel.on_request("exit-signal") do |ch, data|
+                        exit_signal = data.read_long
+                    end
+                end
+            end
+            ssh.loop
+
+            {
+                :out => stdout_data,
+                :err => stderr_data,
+                :exit_code => exit_code,
+                :exit_signal => exit_signal
+            }
+        end
+
     end
 end
