@@ -89,6 +89,9 @@ module StackBuilder::Chef
                 # Create or copy certs
                 create_certs(certificates) unless certificates.nil?
             end
+
+            @build_path = @repo_path + '/.build'
+            FileUtils.mkdir_p(@build_path)
         end
 
         def upload_environments(environment = nil)
@@ -101,7 +104,7 @@ module StackBuilder::Chef
                 # TODO: Handle JSON environment files. JSON files should be processed similar to roles.
 
                 env_file = "#{@repo_path}/environments/#{env_name}.rb"
-                FileUtils.touch(env_file)
+                # FileUtils.touch(env_file)
 
                 knife_cmd.name_args = [ env_file ]
                 run_knife(knife_cmd)
@@ -411,7 +414,7 @@ module StackBuilder::Chef
                 @logger.debug("Uploading data bag '#{data_bag_item_name}' with contents:\n#{data_bag_item.to_yaml}")
 
                 tmpfile = "#{Dir.tmpdir}/#{data_bag_item_name}.json"
-                File.open("#{tmpfile}", 'w+') { |f| f.write(data_bag_item.to_json) }
+                File.open(tmpfile, 'w+') { |f| f.write(data_bag_item.to_json) }
 
                 knife_cmd = Chef::Knife::DataBagFromFile.new
                 knife_cmd.name_args = [ data_bag_name, tmpfile ]
@@ -439,7 +442,7 @@ module StackBuilder::Chef
             @logger.debug("Uploading role '#{role_name}' with contents:\n#{role_content.to_yaml}")
 
             tmpfile = "#{Dir.tmpdir}/#{role_name}.json"
-            File.open("#{tmpfile}", 'w+') { |f| f.write(role_content.to_json) }
+            File.open(tmpfile, 'w+') { |f| f.write(role_content.to_json) }
 
             knife_cmd = Chef::Knife::RoleFromFile.new
             knife_cmd.name_args = [ tmpfile ]
