@@ -6,9 +6,10 @@ The plugin was built to:
 
 1. Describe a complex system topology using a YAML file
 2. Leverage knife cloud plugins to bootstrap cloud, virtual and baremetal nodes within the topology
-3. Re-use cookbooks from the [Chef Supermarket](http://supermarket.getchef.com)
-4. Leverage the Berkshelf workflow and not re-invent the wheel for developing Chef cookbooks
-5. Normalize the Chef environment and provide a means to externalize and parameterize configuration values
+3. Leverage knife container to build and deploy docker containers using Chef cookbooks
+4. Re-use cookbooks from the [Chef Supermarket](http://supermarket.getchef.com)
+5. Leverage the Berkshelf workflow and not re-invent the wheel for developing Chef cookbooks
+6. Normalize the Chef environment and provide a means to externalize and parameterize configuration values
 
 The plugin is very similar to Ansible and Saltstack, but is meant to be Chef centric. It you plan is to not use Chef
 cookbooks for configuration management, then this is not the tool for you. It differs from Chef metal in that the
@@ -61,47 +62,47 @@ file having the same name as the environment in the '```etc/```' folder. This sa
 stack file that describe the system topology. The YAML environment file can in turn be parameterized by pulling in
 values from the shell environment
 
-For example the following will propagate a value from the shell to the rest of the stack and Chef envrionment.
+For example the following will propagate a value from the shell to the rest of the stack and Chef envrionment. Since ruby string variable expansion is used it is possible to reference '```ENV```' to pull shell environment directly into any YAML or JSON configuration file. You can reference a key-value in the yaml that has already been parsed via '```#{my['some key']}```'.
 
 In shell:
 
-    ```
-    export DOMAIN=knife-stackbuilder-dev.org
-    ```
+```
+export DOMAIN=knife-stackbuilder-dev.org
+```
 
 in ```./etc/DEV.yml```:
 
-    ```
-    ---
-    domain: "#{ENV['DOMAIN']}"
-    .
-    .
-    ```
+```
+---
+domain: "#{ENV['DOMAIN']}"
+.
+.
+```
 
 in ```./stack.yml```:
 
-    ```
-    ---
-    # Stack
-    name: Stack1
-    environment: DEV
-    domain: "#{env['domain']}"
-    .
-    .
-    ```
+```
+---
+# Stack
+name: Stack1
+environment: DEV
+domain: "#{env['domain']}"
+.
+.
+```
 
 in ```environments/DEV.rb```:
 
-    ```
-    ---
-    name "DEV"
-    description "Chef 'DEV' environment."
-    env = YAML.load_file(File.expand_path('../../etc/DEV.yml', __FILE__))
-    override_attributes(
-        'domain' => "#{env['domain']}",
-    .
-    .
-    ```
+```
+---
+name "DEV"
+description "Chef 'DEV' environment."
+env = YAML.load_file(File.expand_path('../../etc/DEV.yml', __FILE__))
+override_attributes(
+    'domain' => "#{env['domain']}",
+.
+.
+```
 
 The following diagram illustrates the relationships between the files in the repository and how they are
 parameterized.
@@ -126,6 +127,7 @@ parameterized.
 ## To Do:
 
 * Use Chef Pushy instead of Knife SSH and add option to execute Chef Push jobs on events
+* Make encrypted data bag handling more robust using Use Chef Vault
 * The repo needs to detect changes to cookbooks, roles, data bags etc and upload only the changes
 * Load custom provider gems by inspecting the installed gems
 
@@ -151,4 +153,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Author: Mevan Samaratunga (mevansam@gmail.com)
+Author | Email | Company
+-------|-------|--------
+Mevan Samaratunga | msamaratunga@pivotal.io | [Pivotal](http://www.pivotal.io)
+
