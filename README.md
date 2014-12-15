@@ -65,43 +65,43 @@ For example the following will propagate a value from the shell to the rest of t
 
 In shell:
 
-    ```
-    export DOMAIN=knife-stackbuilder-dev.org
-    ```
+```
+export DOMAIN=knife-stackbuilder-dev.org
+```
 
 in ```./etc/DEV.yml```:
 
-    ```
-    ---
-    domain: "#{ENV['DOMAIN']}"
-    .
-    .
-    ```
+```
+---
+domain: "#{ENV['DOMAIN']}"
+.
+.
+```
 
 in ```./stack.yml```:
 
-    ```
-    ---
-    # Stack
-    name: Stack1
-    environment: DEV
-    domain: "#{env['domain']}"
-    .
-    .
-    ```
+```
+---
+# Stack
+name: Stack1
+environment: DEV
+domain: "#{env['domain']}"
+.
+.
+```
 
 in ```environments/DEV.rb```:
 
-    ```
-    ---
-    name "DEV"
-    description "Chef 'DEV' environment."
-    env = YAML.load_file(File.expand_path('../../etc/DEV.yml', __FILE__))
-    override_attributes(
-        'domain' => "#{env['domain']}",
-    .
-    .
-    ```
+```
+---
+name "DEV"
+description "Chef 'DEV' environment."
+env = YAML.load_file(File.expand_path('../../etc/DEV.yml', __FILE__))
+override_attributes(
+    'domain' => "#{env['domain']}",
+.
+.
+```
 
 The following diagram illustrates the relationships between the files in the repository and how they are
 parameterized.
