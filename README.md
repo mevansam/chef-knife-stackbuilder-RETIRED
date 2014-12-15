@@ -1,14 +1,113 @@
 # Knife StackBuilder plugin
 
-Check out the brief [tutorial](docs/how-to.md) on setting up a repository for a stack and building it.
+Knife StackBuilder is a Chef Knife tool that can be used to orchestrate configuration across multiple nodes. It
+evolved from the need to simplify using Chef to build a clustered application services environment such as OpenStack.
+The plugin was built to:
 
-## Design
+1. Describe a complex system topology using a YAML file
+2. Leverage knife cloud plugins to bootstrap cloud, virtual and baremetal nodes within the topology
+3. Re-use cookbooks from the [Chef Supermarket](http://supermarket.getchef.com)
+4. Leverage the Berkshelf workflow and not re-invent the wheel for developing Chef cookbooks
+5. Normalize the Chef environment and provide a means to externalize and parameterize configuration values
 
-### Berkshelf Cookbook Repository Management
+The plugin is very similar to Ansible and Saltstack, but is meant to be Chef centric. It you plan is to not use Chef
+cookbooks for configuration management, then this is not the tool for you. It differs from Chef metal in that the
+orchestration is driven by a set of directives captured as a YAML file. The advantage of describing the build in a
+YAML file is that it is easier to transform the topology description to another format such as Heat, Bosh if a decision
+is made down the road to move to a different infrastructure orchestration approach.
+
+Check out the brief [tutorial](docs/how-to.md) on setting up a repository for a single node wordpress stack and building
+it. The OpenStack HA Cookbook contains examples where the plugin is used to setup mult-node OpenStack environments in
+Vagrant, VMware etc. using the OpenStack StackForge cookbooks.
+
+## Overview
+
+The plugin extends the standard cookbook repository upload capabilities to provide an extensive variable substituion
+capability. This is done to enable templatizing the Chef artifacts to model a system which can be manipulated by
+variables in environment specific YAML files in the '```etc/```' folder which in turn can be overridden by shell
+variables.
+
+### Chef and Berkshelf Cookbook Repository Management
+
+This is nothing more than a wrapper of existing Chef and Berkshelf repository functionality. However, it adds a couple
+of key features that are helpful when externalizing and securing the environment for Chef.
+
+* Cookbooks
+
+    '```knife stack upload cookbooks```' simply invokes Berkshelf to upload the cookbooks specified in the Berksfile.
+
+* Data Bags and Encryption
+
+    '```knife stack upload data bags```' will upload the data bags found within the '```data_bags/```' folder. Folders
+    at the top-level of that folder will considered to be the data bags with the json files within them, the data bag
+    item and its content. A data bag instance will be created for each environment and encrypted with an environment
+    specific key found in the '```secrets/```' folder. So a data bag name will have the format '```[data bag
+    name]-[environment]```'.
+
+    Data bag content can be parameterized with the environment specific YAML file in the '```etc/```' folder. This
+    simplifies the handling of environment specific settings/secrets by externalizing them. Within a data bag folder
+    creating a content file within an environment specific folder will override any item content at the parent level.
+
+* Roles
+
+    '```knife stack upload roles```' will upload the roles within the '```roles/```'. This is similar to uploading
+    roles via the standard knife role method. However if required, role content can be paremeterized by referencing
+    shell environment variables.
 
 ### Externalizing configuration values and order of evaluation
 
+As mentioned previously this plugin parameterizes the Chef environment in the '```environments/```' folder using a YAML
+file having the same name as the environment in the '```etc/```' folder. This same file is used to parameterize the
+stack file that describe the system topology. The YAML environment file can in turn be parameterized by pulling in
+values from the shell environment
+
+For example the following will propagate a value from the shell to the rest of the stack and Chef envrionment.
+
+In shell:
+    ```
+    export DOMAIN=knife-stackbuilder-dev.org
+    ```
+
+in ```./etc/DEV.yml```:
+    ```
+    ---
+    domain: "#{ENV['DOMAIN']}"
+    .
+    .
+    ```
+
+in ```./stack.yml```:
+    ```
+    ---
+    # Stack
+    name: Stack1
+    environment: DEV
+    domain: "#{env['domain']}"
+    .
+    .
+    ```
+
+in ```environments/DEV.rb```:
+    ```
+    ---
+    name "DEV"
+    description "Chef 'DEV' environment."
+    env = YAML.load_file(File.expand_path('../../etc/DEV.yml', __FILE__))
+    override_attributes(
+        'domain' => "#{env['domain']}",
+    .
+    .
+    ```
+
+The following diagram illustrates the relationships between the files in the repository and how they are
+parameterized.
+
+![Image of OpenStack HA Configuration File Structure]
+(docs/images/config_files.png)
+
 #### Requesting user input for non-persisted values
+
+
 
 #### Including common yaml configurations
 
