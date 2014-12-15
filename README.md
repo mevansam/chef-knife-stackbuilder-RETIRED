@@ -6,9 +6,10 @@ The plugin was built to:
 
 1. Describe a complex system topology using a YAML file
 2. Leverage knife cloud plugins to bootstrap cloud, virtual and baremetal nodes within the topology
-3. Re-use cookbooks from the [Chef Supermarket](http://supermarket.getchef.com)
-4. Leverage the Berkshelf workflow and not re-invent the wheel for developing Chef cookbooks
-5. Normalize the Chef environment and provide a means to externalize and parameterize configuration values
+3. Leverage knife container to build and deploy docker containers using Chef cookbooks
+4. Re-use cookbooks from the [Chef Supermarket](http://supermarket.getchef.com)
+5. Leverage the Berkshelf workflow and not re-invent the wheel for developing Chef cookbooks
+6. Normalize the Chef environment and provide a means to externalize and parameterize configuration values
 
 The plugin is very similar to Ansible and Saltstack, but is meant to be Chef centric. It you plan is to not use Chef
 cookbooks for configuration management, then this is not the tool for you. It differs from Chef metal in that the
