@@ -13,12 +13,12 @@ The plugin was built to:
 The plugin is very similar to Ansible and Saltstack, but is meant to be Chef centric. It you plan is to not use Chef
 cookbooks for configuration management, then this is not the tool for you. It differs from Chef metal in that the
 orchestration is driven by a set of directives captured as a YAML file. The advantage of describing the build in a
-YAML file is that it is easier to transform the topology description to another format such as Heat, Bosh if a decision
-is made down the road to move to a different infrastructure orchestration approach.
+YAML file is that it is easier to transform the topology description to another format such as Heat or Bosh if a
+decision is made down the road to move to a different infrastructure orchestration approach.
 
 Check out the brief [tutorial](docs/how-to.md) on setting up a repository for a single node wordpress stack and building
-it. The OpenStack HA Cookbook contains examples where the plugin is used to setup mult-node OpenStack environments in
-Vagrant, VMware etc. using the OpenStack StackForge cookbooks.
+it. The [OpenStack HA Cookbook](https://github.com/mevansam/openstack-ha-cookbook) contains examples where the plugin
+is used to setup mult-node OpenStack environments in Vagrant, VMware etc. using the OpenStack StackForge cookbooks.
 
 ## Overview
 
@@ -64,11 +64,13 @@ values from the shell environment
 For example the following will propagate a value from the shell to the rest of the stack and Chef envrionment.
 
 In shell:
+
     ```
     export DOMAIN=knife-stackbuilder-dev.org
     ```
 
 in ```./etc/DEV.yml```:
+
     ```
     ---
     domain: "#{ENV['DOMAIN']}"
@@ -77,6 +79,7 @@ in ```./etc/DEV.yml```:
     ```
 
 in ```./stack.yml```:
+
     ```
     ---
     # Stack
@@ -88,6 +91,7 @@ in ```./stack.yml```:
     ```
 
 in ```environments/DEV.rb```:
+
     ```
     ---
     name "DEV"
