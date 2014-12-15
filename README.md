@@ -61,7 +61,7 @@ file having the same name as the environment in the '```etc/```' folder. This sa
 stack file that describe the system topology. The YAML environment file can in turn be parameterized by pulling in
 values from the shell environment
 
-For example the following will propagate a value from the shell to the rest of the stack and Chef envrionment.
+For example the following will propagate a value from the shell to the rest of the stack and Chef envrionment. Since ruby string variable expansion is used it is possible to reference '```ENV```' to pull shell environment directly into any YAML or JSON configuration file. You can reference a key-value in the yaml that has already been parsed via '```#{my['some key']}```'.
 
 In shell:
 
