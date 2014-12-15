@@ -151,4 +151,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Author: Mevan Samaratunga (mevansam@gmail.com)
+Author | Email | Company
+-------|-------|--------
+Mevan Samaratunga | msamaratunga@pivotal.io | [Pivotal](http://www.pivotal.io)
+
