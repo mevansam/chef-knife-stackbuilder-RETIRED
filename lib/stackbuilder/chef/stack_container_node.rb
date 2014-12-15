@@ -182,6 +182,9 @@ module StackBuilder::Chef
                     ( File.exist?(@docker_image_path) && File.exist?(@env_file_path) && \
                     File.mtime(@docker_image_path) > File.mtime(@env_file_path) )
 
+                    %x(docker images)
+                    raise ArgumentError, "Docker does not appear to be available." unless $?.success?
+
                     if is_os_x? || !is_nix_os?
 
                         raise ArgumentError, "DOCKER_HOST environment variable not set." \
