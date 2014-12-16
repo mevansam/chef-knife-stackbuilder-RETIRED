@@ -13,6 +13,7 @@ require 'tmpdir'
 require 'tempfile'
 require "stringio"
 require 'json'
+require 'timeout'
 require 'openssl'
 require "net/ssh"
 require "net/ssh/multi"
