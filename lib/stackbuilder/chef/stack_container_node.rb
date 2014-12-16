@@ -195,24 +195,31 @@ module StackBuilder::Chef
                             unless ENV['DOCKER_TLS_VERIFY']
                     end
 
+                    echo_output = @logger.info? || @logger.debug?
                     build_exists = @name==`docker images | awk '/#{@name}/ { print $1 }'`.strip
 
                     knife_cmd = Chef::Knife::ContainerDockerInit.new
-                    knife_cmd.name_args = [ @name ]
 
-                    knife_cmd.config[:local_mode] = false
-                    knife_cmd.config[:base_image] = build_exists ? @name : @knife_config['image']
-                    knife_cmd.config[:force] = true
-                    knife_cmd.config[:generate_berksfile] = false
-                    knife_cmd.config[:include_credentials] = true
+                    # Run as a forked job (This captures all output and removes noise from output)
+                    job_handles = run_jobs(knife_cmd) do |k|
 
-                    knife_cmd.config[:dockerfiles_path] = @dockerfiles_build_dir
-                    knife_cmd.config[:run_list] = @knife_config['run_list']
+                        k.name_args = [ @name ]
 
-                    knife_cmd.config[:encrypted_data_bag_secret] = IO.read(@env_key_file) \
-                        unless File.exist? (@env_key_file)
+                        k.config[:local_mode] = false
+                        k.config[:base_image] = build_exists ? @name : @knife_config['image']
+                        k.config[:force] = true
+                        k.config[:generate_berksfile] = false
+                        k.config[:include_credentials] = true
 
-                    run_knife(knife_cmd)
+                        k.config[:dockerfiles_path] = @dockerfiles_build_dir
+                        k.config[:run_list] = @knife_config['run_list']
+
+                        k.config[:encrypted_data_bag_secret] = IO.read(@env_key_file) \
+                            unless File.exist? (@env_key_file)
+
+                        run_knife(k)
+                    end
+                    wait_jobs(job_handles)
 
                     dockerfiles_named_path = @dockerfiles_build_dir + '/' + @name
 
@@ -271,21 +278,27 @@ module StackBuilder::Chef
                     end
 
                     knife_cmd = Chef::Knife::ContainerDockerBuild.new
-                    knife_cmd.name_args = [ @name ]
 
-                    knife_cmd.config[:run_berks] = false
-                    knife_cmd.config[:force_build] = true
-                    knife_cmd.config[:dockerfiles_path] = @dockerfiles_build_dir
-                    knife_cmd.config[:cleanup] = true
+                    # Run as a forked job (This captures all output and removes noise from output)
+                    job_handles = run_jobs(knife_cmd, echo_output) do |k|
 
-                    result = run_knife(knife_cmd)
+                        k.name_args = [ @name ]
 
-                    # TODO: Errors are currently not detected as knife-container sends all chef-client output to stdout
-                    if result.rindex('Chef run process exited unsuccessfully (exit code 1)')
+                        k.config[:run_berks] = false
+                        k.config[:force_build] = true
+                        k.config[:dockerfiles_path] = @dockerfiles_build_dir
+                        k.config[:cleanup] = true
+
+                        run_knife(k)
+                    end
+                    job_results = wait_jobs(job_handles)
+
+                    if job_results[knife_cmd.object_id][0]
+                        .rindex('Chef run process exited unsuccessfully (exit code 1)')
 
                         if @logger.level>=::Logger::WARN
-                            puts "Knife execution failed with an error."
-                            puts "#{result.string}"
+                            puts "Knife container build Chef convergence failed with an error."
+                            puts "#{job_results.first[0]}"
                         end
 
                         %x(
