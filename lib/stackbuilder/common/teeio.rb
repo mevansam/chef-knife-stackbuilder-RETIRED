@@ -5,25 +5,15 @@ module StackBuilder::Common
     #
     # Sends data written to an IO object to multiple outputs.
     #
-    class TeeIO < IO
+    class TeeIO < StringIO
 
         def initialize(output = nil)
-            @string_io = StringIO.new
+            super()
             @output = output
         end
 
-        def tty?
-            return false
-        end
-
         def write(string)
-            @string_io.write(string)
             @output.write(string) unless @output.nil?
         end
-
-        def string
-            @string_io.string
-        end
-
     end
 end

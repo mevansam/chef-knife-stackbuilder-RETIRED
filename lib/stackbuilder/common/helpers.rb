@@ -19,23 +19,64 @@ module StackBuilder::Common
         #
         # Runs the given execution list asynchronously if fork is supported
         #
-        def exec_forked(exec_list)
-            
-            if is_nix_os
-                p = []
-                exec_list.each do |data|
-                    p << fork {
-                        yield(data)
+        def run_jobs(jobs, echo = false)
+
+            jobs = [ jobs ] unless jobs.is_a?(Array)
+            job_handles = { }
+
+            if is_nix_os?
+
+                jobs.each do |job|
+
+                    read, write = IO.pipe
+
+                    pid = fork {
+
+                        read.close
+
+                        if echo
+                            stdout = StackBuilder::Common::TeeIO.new($stdout)
+                            stderr = StackBuilder::Common::TeeIO.new($stderr)
+                        else
+                            stdout = StringIO.new
+                            stderr = StringIO.new
+                        end
+
+                        begin
+                            previous_stdout, $stdout = $stdout, stdout
+                            previous_stderr, $stderr = $stderr, stderr
+                            yield(job)
+                            Marshal.dump([stdout.string, stderr.string], write)
+                        ensure
+                            $stdout = previous_stdout
+                            $stderr = previous_stderr
+                        end
                     }
-                end
-                p.each { |pid| Process.waitpid(pid) }
-            else
-                exec_list.each do |data|
-                    yield(data)
-                    printf("\n")
+                    write.close
+
+                    job_handles[job.object_id] = [ pid, read ]
                 end
             end
-            
+
+            job_handles
+        end
+
+        #
+        # This should be called after run_jobs() with the returned handles
+        # if you want to wait for the forked jobs to complete and retrieve
+        # the results.
+        #
+        def wait_jobs(job_handles)
+
+            job_results = { }
+            job_handles.each do |job_id, handle|
+
+                result = Marshal.load(handle[1])
+                Process.waitpid(handle[0])
+                job_results[job_id] = result
+            end
+
+            job_results
         end
 
         #
@@ -324,7 +365,7 @@ module StackBuilder::Common
         end
 
         #
-        # Helper command to rin Chef knife
+        # Helper command to run Chef knife
         #
         def run_knife(knife_cmd, retries = 0, output = StringIO.new, error = StringIO.new)
 
