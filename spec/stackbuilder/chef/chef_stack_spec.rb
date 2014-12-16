@@ -47,7 +47,13 @@ describe StackBuilder::Chef do
         knife_cmd.config[:repo_path] = @repo_path
         knife_cmd.config[:certs] = 'wpweb.stackbuilder.org,wpdb.stackbuilder.org'
         knife_cmd.config[:stack_environments] = 'DEV,TEST,PROD'
-        knife_cmd.config[:cookbooks] = 'haproxy:=1.6.6,mysql:=5.6.1,apache2:=2.0.0,wordpress:=2.3.0'
+        knife_cmd.config[:cookbooks] =
+            'haproxy:=1.6.6,' +
+            'mysql:=5.6.1,' +
+            'mysql-chef_gem:=0.0.5,' +
+            'apache2:=2.0.0,' +
+            'wordpress:=2.3.0'
+
         knife_cmd.run
 
         # Copy the test data into the repo
@@ -62,7 +68,7 @@ describe StackBuilder::Chef do
 
         container_port_map = { }
 
-        unless container_node['container_port_map'].nil?
+        unless container_node.nil? || container_node['container_port_map'].nil?
 
             container_node['container_port_map'].each_value { |v| container_port_map.merge!(v) }
 
