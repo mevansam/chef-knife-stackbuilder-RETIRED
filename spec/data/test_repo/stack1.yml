@@ -3,6 +3,7 @@
 name: Stack1
 
 environment: DEV
+domain: "#{env['DOMAIN']}"
 
 # Common referenced values
 common:

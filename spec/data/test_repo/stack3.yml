@@ -78,7 +78,7 @@ stack:
     # The container start options. Ports will
     # be bound to dynamic ports unless specified
     # explicitly as host_port:container_port. Container
-    # will also be launched in a detached state.
+    # will always be launched in a detached state.
     # Additional options for the docker run command
     # can be specified via the 'options' key.
     container_start:
