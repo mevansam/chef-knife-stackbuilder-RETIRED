@@ -122,7 +122,9 @@ describe StackBuilder::Chef do
 
             if container_port.nil?
 
-                resp = http_fetch("http://#{node['ipaddress']}")
+                ip = node['ipaddress']
+
+                resp = http_fetch("http://#{ip}")
                 expect(resp.code).to eq('200')
 
                 wordpress_ips << ip if n.start_with?('wordpress')
@@ -214,13 +216,8 @@ describe StackBuilder::Chef do
         node_list = run_knife(knife_cmd).split
         expect(node_list).to include('test-TEST-0')
 
-        knife_cmd = Chef::Knife::VagrantServerList.new
-        knife_cmd.config[:vagrant_dir] = File.join(Dir.home, '/.vagrant')
-        server_list = run_knife(knife_cmd)
-        expect(server_list.lines.keep_if { |l| l=~/test-TEST-0/ }.first.chomp.end_with?('running')).to be_truthy
-
         knife_cmd = Chef::Knife::Ssh.new
-        knife_cmd.name_args = [ 'name:test-TEST-0', "sudo sh -c '[ -e ~/stack_configured ] && echo yes'" ]
+        knife_cmd.name_args = [ 'name:test-TEST-0', "sudo su -c '[ -e ~/stack_configured ] && echo yes'" ]
         knife_cmd.config[:attribute] = 'ipaddress'
         knife_cmd.config[:ssh_user] = 'vagrant'
         knife_cmd.config[:identity_file] = Dir.home + '/.vagrant/insecure_key'
@@ -228,7 +225,7 @@ describe StackBuilder::Chef do
         expect(result[/\d+\.\d+\.\d+\.\d+ (\w+)/, 1]).to eq('yes')
 
         knife_cmd = Chef::Knife::Ssh.new
-        knife_cmd.name_args = [ 'name:test-TEST-0', "sudo sh -c 'cat /etc/chef/encrypted_data_bag_secret'" ]
+        knife_cmd.name_args = [ 'name:test-TEST-0', "sudo su -c 'cat /etc/chef/encrypted_data_bag_secret'" ]
         knife_cmd.config[:attribute] = 'ipaddress'
         knife_cmd.config[:ssh_user] = 'vagrant'
         knife_cmd.config[:identity_file] = Dir.home + '/.vagrant/insecure_key'
