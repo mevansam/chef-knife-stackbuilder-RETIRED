@@ -73,6 +73,10 @@ class Chef
 
                     env_vars = provider.get_env_vars
                     stack = StackBuilder::Common.load_yaml(stack_file, env_vars)
+                    merge_maps( stack, stack_overrides.end_with?('.json') ?
+                        JSON.load(File.new(stack_overrides, 'r')) : JSON.load(stack_overrides) ) \
+                        unless stack_overrides.nil?
+
                     puts("Stack file:\n#{stack.to_yaml}")
 
                 else

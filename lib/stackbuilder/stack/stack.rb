@@ -19,13 +19,14 @@ module StackBuilder::Stack
                 StackBuilder::Stack::NodeProvider." unless provider.is_a?(NodeProvider)
 
             @provider = provider
+
             env_vars = provider.get_env_vars
-
             stack = StackBuilder::Common.load_yaml(stack_file, env_vars)
-            @logger.debug("Initializing stack definition:\n #{stack.to_yaml}")
+            merge_maps( stack, stack_overrides.end_with?('.json') ?
+                JSON.load(File.new(stack_overrides, 'r')) : JSON.load(stack_overrides) ) \
+                unless stack_overrides.nil?
 
-            overrides = JSON.load(File.new(overrides, 'r')) unless overrides.nil? || !overrides.end_with?('.json')
-            merge_maps(stack, overrides) unless overrides.nil?
+            @logger.debug("Initializing stack definition:\n #{stack.to_yaml}")
 
             if id.nil?
                 @id = SecureRandom.uuid.gsub(/-/, '')
