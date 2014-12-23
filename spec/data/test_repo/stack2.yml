@@ -28,10 +28,10 @@ stack:
         share_folders: []
         use_cachier: false
         distro: chef-full
-        inline_config: |
-          config.ohai.enable = true
-          config.ohai.primary_nic = "eth1"
-          config.vm.provision "shell", inline: "mkdir -p /etc/chef"
+        vagrant_config: >
+          config.ohai.enable = true::
+          config.ohai.primary_nic = "eth1"::
+          config.vm.provision "shell", inline: "mkdir -p /etc/chef"::
           config.vm.provision "shell", inline: "apt-get update"
         run_list:
         - recipe[ohai]

@@ -27,10 +27,10 @@ knife: &knife
     # inline config to use vagrant-ohai plugin to install ohai
     # plugin to capture ip from eth1 instead of eth0 as well
     # as run an apt update.
-    inline_config: |
-      config.ohai.enable = true
-      config.ohai.primary_nic = "eth1"
-      config.vm.provision "shell", inline: "mkdir -p /etc/chef"
+    vagrant_config: >
+      config.ohai.enable = true::
+      config.ohai.primary_nic = "eth1"::
+      config.vm.provision "shell", inline: "mkdir -p /etc/chef"::
       config.vm.provision "shell", inline: "apt-get update"
     # bootstrap run-list. This will be replaced
     # if a node run list is provided. We run the
