@@ -2,7 +2,7 @@
 
 module Knife
     module StackBuilder
-        VERSION = "0.5.6"
+        VERSION = "0.5.7"
         MAJOR, MINOR, TINY = VERSION.split('.')
     end
 end

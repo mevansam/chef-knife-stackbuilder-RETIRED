@@ -24,8 +24,9 @@ Gem::Specification.new do |s|
     s.executables  = `find bin -name '*' -type f -exec basename {} \\;`.gsub(/\.\//,"").split("\n")
 
     s.add_dependency("chef", "~> 12")
+    s.add_dependency("berkshelf", "~> 3.2.1")
     s.add_dependency("knife-attribute")
     s.add_dependency("knife-container")
-    s.add_dependency("knife-vagrant3")
+    s.add_dependency("knife-vagrant2")
     s.add_dependency("highline")
 end

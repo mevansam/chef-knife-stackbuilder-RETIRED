@@ -13,7 +13,7 @@ gem 'highline'
 
 gem 'knife-attribute'
 gem 'knife-container'
-gem 'knife-vagrant3'
+gem 'knife-vagrant2'
 
 group :development, :test do
 
