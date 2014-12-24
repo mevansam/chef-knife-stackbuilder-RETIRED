@@ -13,6 +13,7 @@ module StackBuilder::Common
         end
 
         def write(string)
+            super(string)
             @output.write(string) unless @output.nil?
         end
     end
