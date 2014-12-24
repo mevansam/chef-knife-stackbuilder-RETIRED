@@ -201,7 +201,7 @@ module StackBuilder::Chef
                     knife_cmd = Chef::Knife::ContainerDockerInit.new
 
                     # Run as a forked job (This captures all output and removes noise from output)
-                    job_handles = run_jobs(knife_cmd) do |k|
+                    run_jobs(knife_cmd, true, echo_output) do |k|
 
                         k.name_args = [ @name ]
 
@@ -219,7 +219,6 @@ module StackBuilder::Chef
 
                         run_knife(k)
                     end
-                    wait_jobs(job_handles)
 
                     dockerfiles_named_path = @dockerfiles_build_dir + '/' + @name
 
@@ -280,7 +279,7 @@ module StackBuilder::Chef
                     knife_cmd = Chef::Knife::ContainerDockerBuild.new
 
                     # Run as a forked job (This captures all output and removes noise from output)
-                    job_handles = run_jobs(knife_cmd, echo_output) do |k|
+                    job_results = run_jobs(knife_cmd, true, echo_output) do |k|
 
                         k.name_args = [ @name ]
 
@@ -291,7 +290,6 @@ module StackBuilder::Chef
 
                         run_knife(k)
                     end
-                    job_results = wait_jobs(job_handles)
 
                     if job_results[knife_cmd.object_id][0]
                         .rindex('Chef run process exited unsuccessfully (exit code 1)')
@@ -304,6 +302,7 @@ module StackBuilder::Chef
                         %x(
                             for i in $(docker ps -a | awk '/chef-in/ { print $1 }'); do docker rm -f $i; done
                             for i in $(docker images | awk '/<none>/ { print $3 }'); do docker rmi $i; done
+                            docker rmi #{@name}
                         )
 
                         raise StackBuilder::Common::StackBuilderError, "Docker build of container #{@name} has errors."

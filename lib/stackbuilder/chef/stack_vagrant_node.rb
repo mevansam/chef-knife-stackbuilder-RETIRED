@@ -124,7 +124,7 @@ module StackBuilder::Chef
 
                     if File.exist?(vdiskmgr)
 
-                        job_handles = run_jobs(disks.values) do |f|
+                        run_jobs(disks.values) do |f|
 
                             disk = f['fileName']
                             @logger.info("Creating disk #{disk}.")
@@ -135,7 +135,6 @@ module StackBuilder::Chef
                             raise StackBuilder::Common::StackBuilderError, "Disk #{disk} could not be created." \
                                 unless File.exist?(disk)
                         end
-                        job_results = wait_jobs(job_handles)
                     else
                         raise StackBuilder::Common::StackBuilderError,
                             "Unable to determine path to vmware-vdiskmanager" +

@@ -19,7 +19,7 @@ module StackBuilder::Common
         #
         # Runs the given execution list asynchronously if fork is supported
         #
-        def run_jobs(jobs, echo = false)
+        def run_jobs(jobs, wait = true, echo = false)
 
             jobs = [ jobs ] unless jobs.is_a?(Array)
             job_handles = { }
@@ -58,7 +58,11 @@ module StackBuilder::Common
                 end
             end
 
-            job_handles
+            if wait
+                wait_jobs(job_handles)
+            else
+                job_handles
+            end
         end
 
         #
