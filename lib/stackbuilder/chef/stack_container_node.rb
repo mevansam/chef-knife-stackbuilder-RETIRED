@@ -25,6 +25,9 @@ module StackBuilder::Chef
 
         def process(index, events, attributes, target = nil)
 
+            return unless events.include?('create') || events.include?('install') || 
+                events.include?('configure') || events.include?('update')
+
             target_node_instance = "#{target.node_id}-#{index}"
             node = Chef::Node.load(target_node_instance)
             ipaddress = node.attributes['ipaddress']
@@ -32,10 +35,13 @@ module StackBuilder::Chef
             ssh = ssh_create(ipaddress, target.ssh_user,
                 target.ssh_password.nil? ? target.ssh_identity_file : target.ssh_password)
 
-            # Copy image file to target if it has changed
+            image_exists = @name==ssh_exec!(ssh, "sudo docker images | awk '$1==\"@name\" { print $1 }'")[:out].strip
+
+            # Copy image file to target if it has changed or does not exist on target
             if build_container(attributes) && !target.nil? &&
                 ( !File.exist?(@docker_image_target) ||
-                (File.mtime(@docker_image_path) > File.mtime(@docker_image_target)) )
+                (File.mtime(@docker_image_path) > File.mtime(@docker_image_target)) ||
+                !image_exists )
 
                 puts "Uploading docker image to target '#{target_node_instance}'."
                 ssh.open_channel do |channel|
@@ -74,6 +80,8 @@ module StackBuilder::Chef
 
                         if result[:exit_code]==0
 
+                            remove_container_node_from_chef(container_node_id)
+
                             container_port_map = Hash.new
                             container_port_map.merge!(node.normal['container_port_map']) \
                                 unless node.normal['container_port_map'].nil?
@@ -84,16 +92,6 @@ module StackBuilder::Chef
 
                             node.normal['container_port_map'] = container_port_map
                             node.save
-
-                            knife_cmd = Chef::Knife::NodeDelete.new
-                            knife_cmd.name_args = [ container_node_id ]
-                            knife_cmd.config[:yes] = true
-                            run_knife(knife_cmd)
-
-                            knife_cmd = Chef::Knife::ClientDelete.new
-                            knife_cmd.name_args = [ container_node_id ]
-                            knife_cmd.config[:yes] = true
-                            run_knife(knife_cmd)
                         else
                             @logger.error("Unable to stop container instance #{running_instances[i]}: #{result[:err]}")
                         end
@@ -107,7 +105,7 @@ module StackBuilder::Chef
 
                     start_cmd = "sudo docker run -d "
 
-                    start_cmd += container_options \
+                    start_cmd += container_options + ' ' \
                         unless container_options.nil?
 
                     start_cmd += container_ports.collect \
@@ -117,10 +115,11 @@ module StackBuilder::Chef
                     running_instances.size.upto(@scale - 1) do |i|
 
                         container_node_id = "#{@node_id}-#{i}"
+                        remove_container_node_from_chef(container_node_id)
 
                         result = ssh_exec!( ssh,
                             "#{start_cmd} --name #{container_node_id} " +
-                            "-e \"CHEF_NODE_NAME=#{container_node_id}\" #{@name}")
+                            "-h #{container_node_id} -e \"CHEF_NODE_NAME=#{container_node_id}\" #{@name}")
 
                         if result[:exit_code]==0
 
@@ -196,7 +195,7 @@ module StackBuilder::Chef
                     end
 
                     echo_output = @logger.info? || @logger.debug?
-                    build_exists = @name==`docker images | awk '/#{@name}/ { print $1 }'`.strip
+                    build_exists = @name==`docker images | awk '$1=="#{@name}" { print $1 }'`.strip
 
                     knife_cmd = Chef::Knife::ContainerDockerInit.new
 
@@ -265,13 +264,13 @@ module StackBuilder::Chef
                     end
 
                     # Add container services
-                    if @knife_config.has_key?('container_service')
+                    if @knife_config.has_key?('container_services')
 
                         first_boot_file = dockerfiles_named_path + '/chef/first-boot.json'
                         first_boot = JSON.load(File.new(first_boot_file, 'r')).to_hash
 
                         first_boot.merge!(attributes)
-                        first_boot['container_service'] = @knife_config['container_service']
+                        first_boot['container_service'] = @knife_config['container_services']
 
                         File.open(first_boot_file, 'w+') { |f| f.write(first_boot.to_json) }
                     end
@@ -291,19 +290,20 @@ module StackBuilder::Chef
                         run_knife(k)
                     end
 
-                    if job_results[knife_cmd.object_id][0]
-                        .rindex('Chef run process exited unsuccessfully (exit code 1)')
+                    result = job_results[knife_cmd.object_id][0]
+                    if result.rindex('Chef run process exited unsuccessfully (exit code 1)') ||
+                        result.rindex(/The command \[.*\] returned a non-zero code:/)
 
                         if @logger.level>=::Logger::WARN
+
+                            %x(for i in $(docker ps -a | awk '/Exited \(\d+\)/ { print $1 }'); do docker rm -f $i; done)
+                            %x(for i in $(docker ps -a | awk '/chef-in/ { print $1 }'); do docker rm -f $i; done)
+                            %x(docker rmi -f $(docker images -q --filter "dangling=true"))
+                            %x(docker rmi -f #{@name})
+
                             puts "Knife container build Chef convergence failed with an error."
                             puts "#{job_results.first[0]}"
                         end
-
-                        %x(
-                            for i in $(docker ps -a | awk '/chef-in/ { print $1 }'); do docker rm -f $i; done
-                            for i in $(docker images | awk '/<none>/ { print $3 }'); do docker rmi $i; done
-                            docker rmi #{@name}
-                        )
 
                         raise StackBuilder::Common::StackBuilderError, "Docker build of container #{@name} has errors."
                     end
@@ -317,6 +317,25 @@ module StackBuilder::Chef
             }
 
             @build_complete = true
+        end
+
+        def remove_container_node_from_chef(container_node_id)
+
+            begin
+                node = Chef::Node.load(container_node_id)
+                @logger.info("Deleting container node reference in Chef: #{container_node_id}")
+                node.destroy
+            rescue
+                # Do Nothing
+            end
+
+            begin
+                client = Chef::ApiClient.load(container_node_id)
+                @logger.info("Deleting container api client reference in Chef: #{container_node_id}")
+                client.destroy
+            rescue
+                # Do Nothing
+            end
         end
 
     end
