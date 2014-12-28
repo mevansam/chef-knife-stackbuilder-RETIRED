@@ -69,15 +69,10 @@ module StackBuilder::Chef
             name = "#{@node_id}-#{index}"
             self.create_vm(name, @knife_config)
 
-            knife_cmd = KnifeAttribute::Node::NodeAttributeSet.new
-            knife_cmd.name_args = [ name, 'stack_id', @id ]
-            knife_cmd.config[:type] = 'override'
-            run_knife(knife_cmd)
-
-            knife_cmd = KnifeAttribute::Node::NodeAttributeSet.new
-            knife_cmd.name_args = [ name, 'stack_node', @name ]
-            knife_cmd.config[:type] = 'override'
-            run_knife(knife_cmd)
+            node = Chef::Node.load(name)
+            node.normal['stack_id'] = @id
+            node.normal['stack_node'] = @name
+            node.save
 
             unless @env_key_file.nil?
                 env_key = IO.read(@env_key_file)
@@ -118,8 +113,6 @@ module StackBuilder::Chef
                 run_on_event = node_manager.run_on_event
             end
 
-            set_attributes(name, attributes)
-
             if (events.include?('configure') || events.include?('update')) && !run_list.nil?
 
                 log_level = (
@@ -140,6 +133,10 @@ module StackBuilder::Chef
                     "result=$?\n" +
                     "rm -f $TMPFILE\n" +
                     "exit $result" )
+            else
+                node = Chef::Node.load(name)
+                attributes.each { |k,v| node.override[k] = v }
+                node.save
             end
 
             run_on_event.each_pair { |event, cmd|
@@ -212,21 +209,6 @@ module StackBuilder::Chef
             @nodes = results[0]
 
             results[2]
-        end
-
-        def set_attributes(name, attributes, key = nil)
-
-            attributes.each do |k, v|
-
-                if v.is_a?(Hash)
-                    set_attributes(name, v, key.nil? ? k : key + '.' + k)
-                else
-                    knife_cmd = KnifeAttribute::Node::NodeAttributeSet.new
-                    knife_cmd.name_args = [ name, (key.nil? ? k : key + '.' + k), v.to_s ]
-                    knife_cmd.config[:type] = 'override'
-                    run_knife(knife_cmd)
-                end
-            end
         end
 
         def knife_ssh(name, cmd)
