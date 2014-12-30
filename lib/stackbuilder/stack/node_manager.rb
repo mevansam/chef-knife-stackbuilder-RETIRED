@@ -31,7 +31,6 @@ module StackBuilder::Stack
         end
 
         def delete(index)
-            raise StackBuilder::Common::NotImplemented, 'NodeManager.delete'
         end
 
     end
