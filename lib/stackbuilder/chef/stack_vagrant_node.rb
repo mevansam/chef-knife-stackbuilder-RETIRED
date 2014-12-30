@@ -79,7 +79,7 @@ module StackBuilder::Chef
             knife_options = knife_config['options']
             provider = knife_options['provider']
 
-            if provider.start_with?('vmware')
+            if !provider.nil? && provider.start_with?('vmware')
 
                 vmx_customize = knife_options['vmx_customize']
                 unless vmx_customize.nil?
