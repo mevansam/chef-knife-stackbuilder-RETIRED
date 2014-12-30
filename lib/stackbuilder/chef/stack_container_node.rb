@@ -35,7 +35,7 @@ module StackBuilder::Chef
             ssh = ssh_create(ipaddress, target.ssh_user,
                 target.ssh_password.nil? ? target.ssh_identity_file : target.ssh_password)
 
-            image_exists = @name==ssh_exec!(ssh, "sudo docker images | awk '$1==\"@name\" { print $1 }'")[:out].strip
+            image_exists = @name==ssh_exec!(ssh, "docker images | awk '$1==\"@name\" { print $1 }'")[:out].strip
 
             # Copy image file to target if it has changed or does not exist on target
             if build_container(attributes) && !target.nil? &&
@@ -87,7 +87,7 @@ module StackBuilder::Chef
                                 unless node.normal['container_port_map'].nil?
 
                             container_port_map.each do |k,v|
-                                container_port_map[k].delete(container_id)
+                                container_port_map[k].delete(container_node_id)
                             end
 
                             node.normal['container_port_map'] = container_port_map
@@ -123,8 +123,7 @@ module StackBuilder::Chef
 
                         if result[:exit_code]==0
 
-                            # Actual container id is the first 12 chars
-                            container_id = result[:out][0, 12]
+                            container_id = container_node_id
 
                             container_port_map = Hash.new
                             container_port_map.merge!(node.normal['container_port_map']) \
@@ -263,21 +262,19 @@ module StackBuilder::Chef
                         File.open(dockerfile_file, 'w+') { |f| f.write(dockerfile_new.join) }
                     end
 
-                    # Add container services
-                    if @knife_config.has_key?('container_services')
+                    # Update first boot json file with attributes and services
+                    first_boot_file = dockerfiles_named_path + '/chef/first-boot.json'
+                    first_boot = JSON.load(File.new(first_boot_file, 'r')).to_hash
+                    first_boot.merge!(attributes)
 
-                        first_boot_file = dockerfiles_named_path + '/chef/first-boot.json'
-                        first_boot = JSON.load(File.new(first_boot_file, 'r')).to_hash
+                    first_boot['container_service'] = @knife_config['container_services'] \
+                        if @knife_config.has_key?('container_services')
 
-                        first_boot.merge!(attributes)
-                        first_boot['container_service'] = @knife_config['container_services']
+                    File.open(first_boot_file, 'w+') { |f| f.write(first_boot.to_json) }
 
-                        File.open(first_boot_file, 'w+') { |f| f.write(first_boot.to_json) }
-                    end
-
+                    # Run the build as a forked job (This captures all output and removes noise from output)
                     knife_cmd = Chef::Knife::ContainerDockerBuild.new
 
-                    # Run as a forked job (This captures all output and removes noise from output)
                     job_results = run_jobs(knife_cmd, true, echo_output) do |k|
 
                         k.name_args = [ @name ]
