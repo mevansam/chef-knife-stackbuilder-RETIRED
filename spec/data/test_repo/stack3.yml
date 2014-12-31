@@ -72,9 +72,12 @@ stack:
     run_list:
     - role[wordpress_web]
     # The service process launched by runit
-    container_service:
+    container_services:
       wordpress:
-        command: /usr/sbin/apache2ctl -D FOREGROUND
+        command: >
+          /bin/sh -c ". /etc/apache2/envvars && /usr/sbin/apache2 -DNO_DETACH -DFOREGROUND -k start"
+        finish: >
+          /bin/sh -c ". /etc/apache2/envvars && /usr/sbin/apache2 -k stop"
     # The container start options. Ports will
     # be bound to dynamic ports unless specified
     # explicitly as host_port:container_port. Container

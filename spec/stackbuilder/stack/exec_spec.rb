@@ -26,7 +26,7 @@ describe StackBuilder::Stack do
             ]
         ]
 
-        job_handles = run_jobs(jobs) do |job|
+        job_handles = run_jobs(jobs, false) do |job|
             puts job[0]
             $stderr.puts job[1]
             sleep job[2]

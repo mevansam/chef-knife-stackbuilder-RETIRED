@@ -36,7 +36,11 @@ describe StackBuilder::Chef do
             @repo_path,
             "wpweb.stackbuilder.org,wpdb.stackbuilder.org",
             'DEV,TEST',
-            'mysql:=5.6.1, wordpress:=2.3.0' )
+            'haproxy:=1.6.6,' +
+            'mysql:=5.6.1,' +
+            'mysql-chef_gem:=0.0.5,' +
+            'apache2:=2.0.0,' +
+            'wordpress:=2.3.0' )
 
         # Copy the test data into the repo
         system("cp -fr #{@test_data_path}/test_repo/* #{@repo_path}")
@@ -47,8 +51,6 @@ describe StackBuilder::Chef do
             .to match_array([ 'DEV', 'TEST' ])
         expect(Dir["#{@repo_path}/environments/**/*.rb"].map { |f| f[/\/(\w+).rb$/, 1] } )
             .to match_array([ 'DEV', 'TEST' ])
-        expect(Dir["#{@repo_path}/*.yml"].map { |f| f[/\/(\w+).yml$/, 1] } )
-            .to match_array([ 'stack1', 'stack2' ])
 
         expect(File.exist?("#{@repo_path}/.certs/cacert.pem")).to be true
         [ 'wpweb.stackbuilder.org', 'wpdb.stackbuilder.org' ].each do |server|
