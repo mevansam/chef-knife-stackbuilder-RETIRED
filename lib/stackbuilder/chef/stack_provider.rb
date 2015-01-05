@@ -40,6 +40,12 @@ module StackBuilder::Chef
             raise ArgmentError, "Stack file is fixed to the environment '#{stack_environment}', " +
                 " which it does not match the environment '#{@environment}' provided." \
                 unless stack_environment.nil? || stack_environment==@environment
+
+            unless stack['chef'].nil?
+
+                stack['chef']['knife_config'].each { |k,v| Chef::Config[:knife][k.to_sym] = v } \
+                    if stack['chef'].has_key?('knife_config')
+            end
         end
 
         def get_env_vars
