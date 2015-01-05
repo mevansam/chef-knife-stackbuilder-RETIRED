@@ -213,7 +213,9 @@ module StackBuilder::Chef
 
         def knife_ssh(name, cmd)
 
-            sudo = @knife_config['options']['sudo'] ? 'sudo -i su -c ' : ''
+            knife_config_options = @knife_config['options'] || { }
+
+            sudo = knife_config_options['sudo'] ? 'sudo -i su -c ' : ''
 
             ssh_cmd = "TMPFILE=`mktemp` && " +
                 "echo -e \"#{cmd.gsub(/\"/, "\\\"").gsub(/\$/, "\\$").gsub(/\`/, '\\' + '\`')}\" > $TMPFILE && " +
@@ -223,9 +225,9 @@ module StackBuilder::Chef
 
             knife_cmd = Chef::Knife::Ssh.new
             knife_cmd.name_args = [ "name:#{name}", ssh_cmd ]
-            knife_cmd.config[:attribute] = 'ipaddress'
+            knife_cmd.config[:attribute] = knife_config_options['ip_attribute'] || 'ipaddress'
 
-            config_knife(knife_cmd, @knife_config['options'] || { })
+            config_knife(knife_cmd, knife_config_options)
 
             if @logger.info? || @logger.debug?
 

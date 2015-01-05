@@ -30,7 +30,14 @@ module StackBuilder::Chef
 
             target_node_instance = "#{target.node_id}-#{index}"
             node = Chef::Node.load(target_node_instance)
-            ipaddress = node.attributes['ipaddress']
+
+            if @knife_config.has_key?('ip_attribute')
+
+                v = lambda { |h,k| k.size>1 ? v.call(h[k.shift],k) : h[k.shift] }
+                ipaddress = v.call(node.attributes, @knife_config['ip_attribute'].split('.'))
+            else
+                ipaddress = node.attributes['ipaddress']
+            end
 
             ssh = ssh_create(ipaddress, target.ssh_user,
                 target.ssh_password.nil? ? target.ssh_identity_file : target.ssh_password)
