@@ -4,6 +4,7 @@ module StackBuilder::Common
     
     class Config
 
+        QUERY_TIMEOUT = 60
         CACHE_TIMEOUT = 60
 
         class << self
@@ -18,6 +19,7 @@ module StackBuilder::Common
             # Determine timeouts
             config.timeouts = { } if config.timeouts.nil?
             config.timeouts[:CACHE_TIMEOUT] = CACHE_TIMEOUT unless config.timeouts.has_key?(:CACHE_TIMEOUT)
+            config.timeouts[:QUERY_TIMEOUT] = QUERY_TIMEOUT unless config.timeouts.has_key?(:QUERY_TIMEOUT)
             
             # Create cache folder
             config.enable_caching = false if config.enable_caching.nil?

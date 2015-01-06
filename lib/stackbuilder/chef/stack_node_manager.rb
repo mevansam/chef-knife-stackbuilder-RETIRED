@@ -74,6 +74,15 @@ module StackBuilder::Chef
             node.normal['stack_node'] = @name
             node.save
 
+            begin
+                # Wait for node to become available
+                node_search("name:#{name}", StackBuilder::Common::Config.timeouts[:QUERY_TIMEOUT])                
+
+            rescue Exception => msg
+                raise StackBuilder::Common::StackBuilderError, \
+                    "Error waiting for node named '#{name} to be indexed in Chef Server: #{msg}"
+            end
+
             unless @env_key_file.nil?
                 env_key = IO.read(@env_key_file)
                 knife_ssh( name,
@@ -199,16 +208,9 @@ module StackBuilder::Chef
 
         def get_stack_node_resources
 
-            query = Chef::Search::Query.new
-
-            escaped_query = URI.escape(
-                "stack_id:#{@id} AND stack_node:#{@name}",
-                Regexp.new("[^#{URI::PATTERN::UNRESERVED}]") )
-
-            results = query.search('node', escaped_query, nil, 0, 999999)
+            results = node_search("stack_id:#{@id} AND stack_node:#{@name}")
             @nodes = results[0]
-
-            results[2]
+            @nodes.size
         end
 
         def knife_ssh(name, cmd)
@@ -239,6 +241,27 @@ module StackBuilder::Chef
             else
                 run_knife(knife_cmd)
             end
+        end
+
+        def node_search(search_query, timeout = 0)
+
+            query = Chef::Search::Query.new
+            escaped_query = URI.escape(search_query, Regexp.new("[^#{URI::PATTERN::UNRESERVED}]"))
+
+            if timeout>0
+                @logger.info("Waiting '#{search_query}' to return results.")
+                results = Timeout::timeout(timeout) {
+
+                    while true do
+                        results = query.search('node', escaped_query, nil, 0, 999999)
+                        return results if results[0].size>0
+                    end
+                }
+            else
+                results = query.search('node', escaped_query, nil, 0, 999999)
+            end
+
+            results
         end
 
     end
