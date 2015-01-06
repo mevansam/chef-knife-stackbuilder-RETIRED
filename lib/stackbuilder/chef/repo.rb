@@ -42,7 +42,7 @@ module StackBuilder::Chef
 
                 @environments = [ ]
                 Dir["#{@repo_path}/environments/**/*.rb"].each do |envfile|
-                    @environments << envfile[/\/(\w+).rb$/, 1]
+                    @environments << File.basename(envfile, ".rb")
                 end
 
                 @logger.debug("Found stack environments #{@environments}")
@@ -118,6 +118,8 @@ module StackBuilder::Chef
 
             knife_cmd = Chef::Knife::DataBagList.new
             data_bag_list = run_knife(knife_cmd).split
+
+            environments = (environment.nil? ? @environments : [ environment ])
 
             # Create environment specific data bags to hold certificates
             @environments.each do |env_name|
