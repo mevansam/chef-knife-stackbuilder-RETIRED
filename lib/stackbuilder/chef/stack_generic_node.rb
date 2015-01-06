@@ -6,7 +6,7 @@ module StackBuilder::Chef
 
     class GenericNodeManager < StackBuilder::Chef::NodeManager
 
-        def create_vm(name, knife_config)
+        def create_vm(index, name, knife_config)
 
             create_class_name = knife_config['create']['class']
             raise ArgumentError, "Knife plugin's server 'create' class name not provided." \
@@ -20,6 +20,17 @@ module StackBuilder::Chef
             else
                 knife_cmd.name_args = [ name ]
             end
+
+            if knife_config['create'].has_key?('pool_key')
+
+                pool_key = knife_config['create']['pool_key']
+
+                placement_pools = knife_config['placement_pools']
+                raise ArgumentError, "Knife plugin 'placement_pools' list was not provided." \
+                    if placement_pools.nil?
+
+                knife_cmd.config[pool_key.to_sym] = placement_pools[index % placement_pools.size]
+            end            
 
             config_knife(knife_cmd, knife_config['create']['options'] || { })
             config_knife(knife_cmd, knife_config['options'] || { })

@@ -6,7 +6,7 @@ module StackBuilder::Chef
 
     class VagrantNodeManager < StackBuilder::Chef::NodeManager
 
-        def create_vm(name, knife_config)
+        def create_vm(index, name, knife_config)
 
             handle_vagrant_box_additions(name, knife_config)
 

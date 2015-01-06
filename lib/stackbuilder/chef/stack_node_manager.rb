@@ -67,7 +67,7 @@ module StackBuilder::Chef
         def create(index)
 
             name = "#{@node_id}-#{index}"
-            self.create_vm(name, @knife_config)
+            self.create_vm(index, name, @knife_config)
 
             node = Chef::Node.load(name)
             node.normal['stack_id'] = @id
@@ -88,7 +88,7 @@ module StackBuilder::Chef
             raise msg
         end
 
-        def create_vm(name, knife_config)
+        def create_vm(index, name, knife_config)
             raise StackBuilder::Common::NotImplemented, 'HostNodeManager.create_vm'
         end
 
