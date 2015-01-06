@@ -1,7 +1,9 @@
-name "<%= @environment %>"
-description "Chef '<%= @environment %>' environment."
+env_name = File.basename( __FILE__, ".rb")
 
-env = YAML.load_file(File.expand_path('../../etc/<%= @environment %>.yml', __FILE__))
+name env_name
+description "Chef '#{env_name}' environment."
+
+env = YAML.load_file(File.expand_path("../../etc/#{env_name}.yml", __FILE__))
 
 override_attributes(
 
