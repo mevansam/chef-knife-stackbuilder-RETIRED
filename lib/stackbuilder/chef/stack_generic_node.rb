@@ -54,6 +54,8 @@ module StackBuilder::Chef
             config_knife(knife_cmd, knife_config['delete']['options'] || { })
             config_knife(knife_cmd, knife_config['options'] || { })
 
+            knife_cmd.config[:yes] = true
+
             if knife_config['delete']['synchronized']
                 @@sync ||= Mutex.new
                 @@sync.synchronize {
