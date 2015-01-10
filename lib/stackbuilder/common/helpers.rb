@@ -46,8 +46,8 @@ module StackBuilder::Common
                             previous_stdout, $stdout = $stdout, stdout
                             previous_stderr, $stderr = $stderr, stderr
                             yield(job)
-                            Marshal.dump([stdout.string, stderr.string], write)
                         ensure
+                            Marshal.dump([stdout.string, stderr.string], write)
                             $stdout = previous_stdout
                             $stderr = previous_stderr
                         end
