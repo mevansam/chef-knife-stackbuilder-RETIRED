@@ -144,7 +144,7 @@ module StackBuilder::Chef
                     "exit $result" )
             else
                 node = Chef::Node.load(name)
-                attributes.each { |k,v| node.override[k] = v }
+                attributes.each { |k,v| node.normal[k] = v }
                 node.save
             end
 
