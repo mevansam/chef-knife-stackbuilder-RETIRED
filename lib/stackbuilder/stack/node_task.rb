@@ -211,9 +211,9 @@ module StackBuilder::Stack
 
             threads = [ ]
 
-            scale = (@deleted ? @manager.get_scale : @scale)
             if @targets.empty?
 
+                scale = (@deleted ? @manager.get_scale : @scale)
                 if scale > 0
 
                     if @sync == "first"
@@ -233,7 +233,9 @@ module StackBuilder::Stack
                 end
             else
                 @targets.each do |t|
-                    t.scale.times do |i|
+                    
+                    scale = (@deleted ? t.manager.get_scale : t.scale)
+                    scale.times do |i|
                         spawn_processing(i, events, threads, t)
                     end
                 end
