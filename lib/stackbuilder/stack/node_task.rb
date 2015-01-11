@@ -214,22 +214,8 @@ module StackBuilder::Stack
             if @targets.empty?
 
                 scale = (@deleted ? @manager.get_scale : @scale)
-                if scale > 0
-
-                    if @sync == "first"
-                        @manager.process(scale, events, self.parse_attributes(@attributes, 0))
-                        scale -= 1
-                    end
-
-                    if @sync == "all"
-                        scale.times do |i|
-                            @manager.process(i, events, self.parse_attributes(@attributes, i))
-                        end
-                    else
-                        scale.times do |i|
-                            spawn_processing(i, events, threads)
-                        end
-                    end
+                scale.times do |i|
+                    spawn_processing(i, events, threads)
                 end
             else
                 @targets.each do |t|
@@ -286,12 +272,13 @@ module StackBuilder::Stack
                 "#{orchestrate_events.collect { |e| e } .join(", ")}") if @logger.debug?
 
             if @sync==SYNC_ALL || (i==0 && @sync==SYNC_FIRST)
+                @resource_sync[i].wait if target.nil?
                 @manager.process(i, orchestrate_events, parse_attributes(@attributes, i), target_manager)
             else
-                @resource_sync[i].wait if target.nil?
                 threads << Thread.new {
 
                     begin
+                        @resource_sync[i].wait if target.nil?
                         @manager.process(i, orchestrate_events, parse_attributes(@attributes, i), target_manager)
 
                     rescue Exception => msg
