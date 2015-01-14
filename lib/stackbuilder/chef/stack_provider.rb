@@ -37,7 +37,7 @@ module StackBuilder::Chef
             @id = id
 
             stack_environment = stack['environment']
-            raise ArgmentError, "Stack file is fixed to the environment '#{stack_environment}', " +
+            raise ArgumentError, "Stack file is fixed to the environment '#{stack_environment}', " +
                 " which it does not match the environment '#{@environment}' provided." \
                 unless stack_environment.nil? || stack_environment==@environment
 
