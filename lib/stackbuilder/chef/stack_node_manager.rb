@@ -237,7 +237,7 @@ module StackBuilder::Chef
                 error = StackBuilder::Common::TeeIO.new($stderr)
 
                 @logger.info("Running '#{cmd}' on node 'name:#{name}'.")
-                run_knife(knife_cmd, 0, output, error)
+                run_knife(knife_cmd, output, error)
             else
                 run_knife(knife_cmd)
             end

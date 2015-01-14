@@ -200,30 +200,26 @@ module StackBuilder::Chef
                             unless ENV['DOCKER_TLS_VERIFY']
                     end
 
-                    echo_output = @logger.info? || @logger.debug?
                     build_exists = @name==`docker images | awk '$1=="#{@name}" { print $1 }'`.strip
 
                     knife_cmd = Chef::Knife::ContainerDockerInit.new
 
                     # Run as a forked job (This captures all output and removes noise from output)
-                    run_jobs(knife_cmd, true, echo_output) do |k|
+                    knife_cmd.name_args = [ @name ]
 
-                        k.name_args = [ @name ]
+                    knife_cmd.config[:local_mode] = false
+                    knife_cmd.config[:base_image] = build_exists ? @name : @knife_config['image']
+                    knife_cmd.config[:force] = true
+                    knife_cmd.config[:generate_berksfile] = false
+                    knife_cmd.config[:include_credentials] = true
 
-                        k.config[:local_mode] = false
-                        k.config[:base_image] = build_exists ? @name : @knife_config['image']
-                        k.config[:force] = true
-                        k.config[:generate_berksfile] = false
-                        k.config[:include_credentials] = true
+                    knife_cmd.config[:dockerfiles_path] = @dockerfiles_build_dir
+                    knife_cmd.config[:run_list] = @knife_config['run_list']
 
-                        k.config[:dockerfiles_path] = @dockerfiles_build_dir
-                        k.config[:run_list] = @knife_config['run_list']
+                    knife_cmd.config[:encrypted_data_bag_secret] = IO.read(@env_key_file) \
+                        unless File.exist? (@env_key_file)
 
-                        k.config[:encrypted_data_bag_secret] = IO.read(@env_key_file) \
-                            unless File.exist? (@env_key_file)
-
-                        run_knife(k)
-                    end
+                    run_knife_forked(knife_cmd)
 
                     dockerfiles_named_path = @dockerfiles_build_dir + '/' + @name
 
@@ -282,21 +278,16 @@ module StackBuilder::Chef
                     # Run the build as a forked job (This captures all output and removes noise from output)
                     knife_cmd = Chef::Knife::ContainerDockerBuild.new
 
-                    job_results = run_jobs(knife_cmd, true, echo_output) do |k|
+                    knife_cmd.name_args = [ @name ]
 
-                        k.name_args = [ @name ]
+                    knife_cmd.config[:run_berks] = false
+                    knife_cmd.config[:force_build] = true
+                    knife_cmd.config[:dockerfiles_path] = @dockerfiles_build_dir
+                    knife_cmd.config[:cleanup] = true
 
-                        k.config[:run_berks] = false
-                        k.config[:force_build] = true
-                        k.config[:dockerfiles_path] = @dockerfiles_build_dir
-                        k.config[:cleanup] = true
-
-                        run_knife(k)
-                    end
-
-                    result = job_results[knife_cmd.object_id][0]
-                    if result.rindex('Chef run process exited unsuccessfully (exit code 1)') ||
-                        result.rindex(/The command \[.*\] returned a non-zero code:/)
+                    begin
+                        results = run_knife_forked(knife_cmd)
+                    rescue Exception => msg
 
                         if @logger.level>=::Logger::WARN
 
@@ -306,10 +297,10 @@ module StackBuilder::Chef
                             %x(docker rmi -f #{@name})
 
                             puts "Knife container build Chef convergence failed with an error."
-                            puts "#{job_results.first[0]}"
+                            puts "#{results[0]}"
                         end
 
-                        raise StackBuilder::Common::StackBuilderError, "Docker build of container #{@name} has errors."
+                        raise msg
                     end
 
                     puts 'Saving docker image for upload. This may take a few minutes.'

@@ -38,10 +38,10 @@ module StackBuilder::Chef
             if knife_config['create']['synchronized']
                 @@sync ||= Mutex.new
                 @@sync.synchronize {
-                    run_knife(knife_cmd, knife_config['create']['retries'] || 0)
+                    run_knife_forked(knife_cmd)
                 }
             else
-                run_knife(knife_cmd, knife_config['create']['retries'] || 0)
+                run_knife_forked(knife_cmd)
             end
         end
 
@@ -70,10 +70,10 @@ module StackBuilder::Chef
             if knife_config['delete']['synchronized']
                 @@sync ||= Mutex.new
                 @@sync.synchronize {
-                    run_knife(knife_cmd, knife_config['delete']['retries'] || 0)
+                    run_knife_forked(knife_cmd)
                 }
             else
-                run_knife(knife_cmd, knife_config['delete']['retries'] || 0)
+                run_knife_forked(knife_cmd)
             end
         end
     end

@@ -46,8 +46,10 @@ module StackBuilder::Common
                             previous_stdout, $stdout = $stdout, stdout
                             previous_stderr, $stderr = $stderr, stderr
                             yield(job)
-                        ensure
                             Marshal.dump([stdout.string, stderr.string], write)
+                        rescue Exception => msg
+                            Marshal.dump([stdout.string, stderr.string, msg], write)
+                        ensure
                             $stdout = previous_stdout
                             $stderr = previous_stderr
                         end
@@ -369,42 +371,37 @@ module StackBuilder::Common
         end
 
         #
-        # Helper command to run Chef knife
+        # Helper commands to run Chef knife
         #
-        def run_knife(knife_cmd, retries = 0, output = StringIO.new, error = StringIO.new)
+        def run_knife(knife_cmd, output = StringIO.new, error = StringIO.new)
 
             knife_cmd.ui = Chef::Knife::UI.new(output, error, STDIN, knife_cmd.config) \
                 unless output.nil? && error.nil?
 
-            run = true
-            while run
+            knife_cmd.run
+            output.string
+        end
 
-                begin
-                    knife_cmd.run
-                    run = false
+        #
+        # Helper to run one or more Chef knife commands as a forked jobs
+        #
+        def run_knife_forked(*knife_cmd)
 
-                rescue Exception => msg
+            logger = StackBuilder::Common::Config.logger
 
-                    if retries==0
-
-                        if @logger.level>=::Logger::WARN
-                            puts "Knife execution failed with an error."
-                            puts "* StdOut from knife run: #{output.string}"
-                            puts "* StdErr from knife run: #{error.string}"
-                        end
-
-                        @logger.debug(msg.backtrace.join("\n\t")) if Config.logger.debug?
-                        raise msg
-                    end
-
-                    @logger.debug("Knife command #{knife_cmd} failed. Retrying after 2s.")
-
-                    sleep 2
-                    retries -= 1
-                end
+            job_results = run_jobs(knife_cmd, true, logger.info? || logger.debug?) do |k|
+                run_knife(k)
             end
 
-            output.string
+            results = knife_cmd.collect do |k| 
+
+                result = job_results[k.object_id]
+                raise result[2] unless result[2].nil?
+
+                result[0]
+            end
+
+            (results.size==1 ? results[0] : results)
         end
 
         #

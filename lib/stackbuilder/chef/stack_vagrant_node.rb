@@ -39,11 +39,14 @@ module StackBuilder::Chef
 
             @@sync ||= Mutex.new
             @@sync.synchronize {
-                run_knife(knife_cmd)
+                run_knife_forked(knife_cmd)
             }
         end
 
         def delete_vm(name, knife_config)
+
+            puts "deleting #{name}"
+            exit 1
 
             knife_cmd = Chef::Knife::VagrantServerDelete.new
             knife_cmd.name_args = [ name ]
@@ -52,7 +55,7 @@ module StackBuilder::Chef
 
             @@sync ||= Mutex.new
             @@sync.synchronize {
-                run_knife(knife_cmd, 3)
+                run_knife_forked(knife_cmd)
             }
 
             handle_vagrant_box_cleanup(knife_config)
