@@ -14,9 +14,7 @@ module StackBuilder::Chef
         attr_accessor :run_list
         attr_accessor :run_on_event
 
-        attr_accessor :ssh_user
-        attr_accessor :ssh_password
-        attr_accessor :ssh_identity_file
+        SSH_CREDENTIAL_KEYS = Set.new(['ssh_user', 'ssh_password', 'identity_file'])
 
         def initialize(id, node_config, repo_path, environment)
 
@@ -32,20 +30,6 @@ module StackBuilder::Chef
             @run_on_event = node_config['run_on_event']
 
             @knife_config = node_config['knife']
-            if @knife_config && @knife_config.has_key?('options')
-
-                raise ArgumentError, 'An ssh user needs to be provided for bootstrap and knife ssh.' \
-                    unless @knife_config['options'].has_key?('ssh_user')
-
-                raise ArgumentError, 'An ssh key file or password must be provided for knife to be able ssh to a node.' \
-                    unless @knife_config['options'].has_key?('identity_file') ||
-                       @knife_config['options'].has_key?('ssh_password')
-
-                @ssh_user = @knife_config['options']['ssh_user']
-                @ssh_password = @knife_config['options']['ssh_password']
-                @ssh_identity_file = @knife_config['options']['identity_file']
-                @ssh_identity_file.gsub!(/~\//, Dir.home + '/') unless @ssh_identity_file.nil?
-            end
 
             @env_key_file = "#{repo_path}/secrets/#{environment}"
             @env_key_file = nil unless File.exist?(@env_key_file)
@@ -57,6 +41,26 @@ module StackBuilder::Chef
 
         def get_scale
             get_stack_node_resources
+        end
+
+        def get_ssh_credentials(name)
+
+            if @ssh_user.nil?
+
+                raise ArgumentError, 'An ssh user is required to create ssh sessions.' \
+                    unless @knife_config['options'].has_key?('ssh_user')
+
+                raise ArgumentError, 'An ssh key file or password is required to create ssh sessions.' \
+                    unless @knife_config['options'].has_key?('identity_file') ||
+                       @knife_config['options'].has_key?('ssh_password')
+
+                @ssh_user = @knife_config['options']['ssh_user']
+                @ssh_password = @knife_config['options']['ssh_password']
+                @ssh_identity_file = @knife_config['options']['identity_file']
+                @ssh_identity_file.gsub!(/~\//, Dir.home + '/') unless @ssh_identity_file.nil?
+            end
+
+            [ @ssh_user, @ssh_password, @ssh_identity_file ]
         end
 
         def node_attributes
@@ -191,17 +195,25 @@ module StackBuilder::Chef
             raise StackBuilder::Common::NotImplemented, 'HostNodeManager.delete_vm'
         end
 
-        def config_knife(knife_cmd, options)
+        def config_knife(name, knife_cmd, options)
 
             options.each_pair do |k, v|
 
-                arg = k.gsub(/-/, '_')
+                unless SSH_CREDENTIAL_KEYS.include?(k)
 
-                # Fix issue where '~/' is not expanded to home dir
-                v.gsub!(/~\//, Dir.home + '/') if arg.end_with?('_dir') && v.start_with?('~/')
+                    arg = k.gsub(/-/, '_')
 
-                knife_cmd.config[arg.to_sym] = v
+                    # Fix issue where '~/' is not expanded to home dir
+                    v.gsub!(/~\//, Dir.home + '/') if arg.end_with?('_dir') && v.start_with?('~/')
+
+                    knife_cmd.config[arg.to_sym] = v
+                end
             end
+
+            ssh_user, ssh_password, ssh_identity_file = self.get_ssh_credentials(name)
+            knife_cmd.config[:ssh_user] = ssh_user
+            knife_cmd.config[:ssh_password] = ssh_password unless ssh_password.nil?
+            knife_cmd.config[:identity_file] = ssh_identity_file unless ssh_identity_file.nil?
         end
 
         private
@@ -211,36 +223,6 @@ module StackBuilder::Chef
             results = node_search("stack_id:#{@id} AND stack_node:#{@name}")
             @nodes = results[0]
             @nodes.size
-        end
-
-        def knife_ssh(name, cmd)
-
-            knife_config_options = @knife_config['options'] || { }
-
-            sudo = knife_config_options['sudo'] ? 'sudo -i su -c ' : ''
-
-            ssh_cmd = "TMPFILE=`mktemp` && " +
-                "echo -e \"#{cmd.gsub(/\"/, "\\\"").gsub(/\$/, "\\$").gsub(/\`/, '\\' + '\`')}\" > $TMPFILE && " +
-                "chmod 0744 $TMPFILE && " +
-                "#{sudo}$TMPFILE && " +
-                "rm $TMPFILE"
-
-            knife_cmd = Chef::Knife::Ssh.new
-            knife_cmd.name_args = [ "name:#{name}", ssh_cmd ]
-            knife_cmd.config[:attribute] = knife_config_options['ip_attribute'] || 'ipaddress'
-
-            config_knife(knife_cmd, knife_config_options)
-
-            if @logger.info? || @logger.debug?
-
-                output = StackBuilder::Common::TeeIO.new($stdout)
-                error = StackBuilder::Common::TeeIO.new($stderr)
-
-                @logger.info("Running '#{cmd}' on node 'name:#{name}'.")
-                run_knife(knife_cmd, output, error)
-            else
-                run_knife(knife_cmd)
-            end
         end
 
         def node_search(search_query, timeout = 0)
@@ -262,6 +244,36 @@ module StackBuilder::Chef
             end
 
             results
+        end
+
+        def knife_ssh(name, cmd)
+
+            knife_config = @knife_config['options'] || { }
+
+            sudo = knife_config['sudo'] ? 'sudo -i su -c ' : ''
+
+            ssh_cmd = "TMPFILE=`mktemp` && " +
+                "echo -e \"#{cmd.gsub(/\"/, "\\\"").gsub(/\$/, "\\$").gsub(/\`/, '\\' + '\`')}\" > $TMPFILE && " +
+                "chmod 0744 $TMPFILE && " +
+                "#{sudo}$TMPFILE && " +
+                "rm $TMPFILE"
+
+            knife_cmd = Chef::Knife::Ssh.new
+            knife_cmd.name_args = [ "name:#{name}", ssh_cmd ]
+            knife_cmd.config[:attribute] = knife_config['ip_attribute'] || 'ipaddress'
+
+            self.config_knife(name, knife_cmd, knife_config)
+
+            if @logger.info? || @logger.debug?
+
+                output = StackBuilder::Common::TeeIO.new($stdout)
+                error = StackBuilder::Common::TeeIO.new($stderr)
+
+                @logger.info("Running '#{cmd}' on node 'name:#{name}'.")
+                run_knife(knife_cmd, output, error)
+            else
+                run_knife(knife_cmd)
+            end
         end
 
     end

@@ -39,8 +39,8 @@ module StackBuilder::Chef
                 ipaddress = node.attributes['ipaddress']
             end
 
-            ssh = ssh_create(ipaddress, target.ssh_user,
-                target.ssh_password.nil? ? target.ssh_identity_file : target.ssh_password)
+            ssh_user, ssh_password, ssh_identity_file = target.get_ssh_credentials(target_node_instance)
+            ssh = ssh_create(ipaddress, ssh_user, ssh_password || ssh_identity_file)
 
             image_exists = @name==ssh_exec!(ssh, "docker images | awk '$1==\"@name\" { print $1 }'")[:out].strip
 

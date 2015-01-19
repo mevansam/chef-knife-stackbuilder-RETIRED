@@ -32,8 +32,8 @@ module StackBuilder::Chef
                 knife_cmd.config[pool_key.to_sym] = placement_pools[index % placement_pools.size]
             end            
 
-            config_knife(knife_cmd, knife_config['create']['options'] || { })
-            config_knife(knife_cmd, knife_config['options'] || { })
+            self.config_knife(name, knife_cmd, knife_config['create']['options'] || { })
+            self.config_knife(name, knife_cmd, knife_config['options'] || { })
 
             if knife_config['create']['synchronized']
                 @@sync ||= Mutex.new
@@ -62,8 +62,8 @@ module StackBuilder::Chef
                 knife_cmd.name_args = [ name ]
             end
 
-            config_knife(knife_cmd, knife_config['delete']['options'] || { })
-            config_knife(knife_cmd, knife_config['options'] || { })
+            self.config_knife(name, knife_cmd, knife_config['delete']['options'] || { })
+            self.config_knife(name, knife_cmd, knife_config['options'] || { })
 
             knife_cmd.config[:yes] = true
 

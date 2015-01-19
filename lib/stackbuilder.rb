@@ -15,9 +15,10 @@ require "stringio"
 require 'json'
 require 'timeout'
 require 'openssl'
-require "net/ssh"
-require "net/ssh/multi"
-require "highline/import"
+require 'net/ssh'
+require 'net/ssh/multi'
+require 'highline/import'
+require 'set'
 
 require 'chef'
 require 'chef/knife'
