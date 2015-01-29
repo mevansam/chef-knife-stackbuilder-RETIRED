@@ -46,6 +46,8 @@ module StackBuilder::Chef
                 stack['chef']['knife_config'].each { |k,v| Chef::Config[:knife][k.to_sym] = v } \
                     if stack['chef'].has_key?('knife_config')
             end
+
+            @static_ips = stack['static_ips']
         end
 
         def get_env_vars
@@ -77,7 +79,7 @@ module StackBuilder::Chef
                     end
 
                 elsif knife_config.has_key?('create')
-                    return StackBuilder::Chef::GenericNodeManager.new(@id, node_config, @repo_path, @environment)
+                    return StackBuilder::Chef::GenericNodeManager.new(@id, node_config, @repo_path, @environment, @static_ips)
 
                 else
                     return StackBuilder::Chef::NodeManager.new(@id, node_config, @repo_path, @environment)
