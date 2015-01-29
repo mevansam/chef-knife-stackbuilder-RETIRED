@@ -4,6 +4,8 @@ module StackBuilder::Common
 
     module Helpers
 
+        MAGIC_VARS = Set.new(%w(env my))
+
         #
         # Returns whether platform is a nix OS
         #
@@ -48,7 +50,8 @@ module StackBuilder::Common
                             yield(job)
                             Marshal.dump([stdout.string, stderr.string], write)
                         rescue Exception => msg
-                            Marshal.dump([stdout.string, stderr.string, msg], write)
+                            StackBuilder::Common::Config.logger.debug("Exception in forked job: #{msg}\n" + msg.backtrace.join("\n\t"))
+                            Marshal.dump([stdout.string, stderr.string, StackBuilder::Common::StackBuilderError.new(msg.to_s) ], write)
                         ensure
                             $stdout = previous_stdout
                             $stderr = previous_stderr
@@ -91,7 +94,7 @@ module StackBuilder::Common
         def load_yaml(file, env_vars, my = nil)
 
             yaml = YAML.load_file(file)
-            eval_map_values(yaml, env_vars, file, my)
+            eval_map_values(yaml, env_vars, file, my || yaml)
         end
 
         #
@@ -104,21 +107,11 @@ module StackBuilder::Common
 
             if v.is_a?(String)
 
-                if v=~/#\{.*\}/
-                    begin
-                        return eval("\"#{v.gsub(/\"/, "\\\"")}\"")
+                v = eval("\"#{v.gsub(/\"/, "\\\"")}\"") if v=~/#\{.*\}/
 
-                    rescue Exception => msg
+                if v.start_with?('<<')
 
-                        StackBuilder::Common::Config.logger.debug( "Error evaluating configuration " +
-                            "variable '#{v}': #{msg}\nenv = #{env}\nmy = #{my}")
-
-                        return v
-                    end
-
-                elsif v.start_with?('<<')
-
-                    k1 = v[/<<(\w*)[\*\$\+]/,1]
+                    k1 = v[/<<(\w*)[\*\$\@\+]/,1]
                     env_val = k1.nil? || k1.empty? ? nil : ENV[k1]
 
                     i = k1.length + 3
@@ -144,26 +137,44 @@ module StackBuilder::Common
                             end
                             return v
 
+                        when '@'
+                            if env_val.nil?
+                                tuple = k2.split(':')
+                            else
+                                tuple = env_val.split(':')
+                            end
+
+                            ipaddress = IPAddr.new(tuple[0])                            
+                            num_ips, cidr_mask = tuple[1].split('/')
+
+                            ipaddresses = [ ipaddress ]
+                            ipaddresses += (0..num_ips.to_i-2).to_a.collect { |i| ipaddress = ipaddress.succ }
+                            return ipaddresses.collect { |i| i.to_s + (cidr_mask.nil? ? '' : "/#{cidr_mask}") }
+
                         when '+'
-                            lookup_keys = (env_val || k2).split(/[\[\]]/).reject { |k| k.empty? }
+                            lookup_keys = (env_val || k2).split(/[\[\]']/).reject { |k| k.empty? }
 
                             key = lookup_keys.shift
-                            include_file = key.start_with?('/') || key.nil? ? key : File.expand_path('../' + key, file)
+                            if MAGIC_VARS.include?(key)
+                                v = eval(key + lookup_keys.collect { |v| "['#{v}']" }.join)
+                            else
+                                include_file = key.start_with?('/') || key.nil? ? key : File.expand_path('../' + key, file)
 
-                            begin
-                                yaml = load_yaml(include_file, env, my)
+                                begin
+                                    yaml = load_yaml(include_file, env, my)
 
-                                return lookup_keys.empty? ? yaml
-                                    : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
+                                    return lookup_keys.empty? ? yaml
+                                        : eval('yaml' + lookup_keys.collect { |v| "['#{v}']" }.join)
 
-                            rescue Exception => msg
-                                puts "ERROR: Unable to include referenced data '#{v}'."
-                                raise msg
+                                rescue Exception => msg
+                                    puts "ERROR: Unable to include referenced data '#{v}'."
+                                    raise msg
+                                end
                             end
-                        else
-                            return v
                     end
                 end
+
+                return v
 
             elsif v.is_a?(Hash)
 
@@ -189,6 +200,11 @@ module StackBuilder::Common
             end
 
             v
+
+        rescue Exception => msg
+
+            StackBuilder::Common::Config.logger.debug( "Error evaluating configuration " +
+                "variable '#{v}': #{msg}\nenv = #{env}\nmy = #{my}")
         end
 
         # 
@@ -374,6 +390,15 @@ module StackBuilder::Common
         # Helper commands to run Chef knife
         #
         def run_knife(knife_cmd, output = StringIO.new, error = StringIO.new)
+
+            logger = StackBuilder::Common::Config.logger
+            if logger.info? || logger.debug?
+                output = StackBuilder::Common::TeeIO.new($stdout)
+                error = StackBuilder::Common::TeeIO.new($stderr)
+            else
+                output = StringIO.new
+                error = StringIO.new
+            end
 
             knife_cmd.ui = Chef::Knife::UI.new(output, error, STDIN, knife_cmd.config) \
                 unless output.nil? && error.nil?
