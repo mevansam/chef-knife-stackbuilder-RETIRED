@@ -1,5 +1,6 @@
 *.gem
 *.rbc
+*.iml
 
 .DS_Store
 .vagrant
