@@ -9,6 +9,7 @@ module StackBuilder::Stack
         attr_reader :name
 
         attr_accessor :scale
+        attr_accessor :max_scale
         attr_accessor :prev_scale
         attr_accessor :sync
 
@@ -38,7 +39,7 @@ module StackBuilder::Stack
             @counter = 0
             
             @name = node_config['node']
-            @attributes = (node_config.has_key?('attributes') ? node_config['attributes'] : { })
+            @attributes = node_config['attributes'] || { }
 
             case node_config['sync']
                 when "first"
@@ -51,10 +52,11 @@ module StackBuilder::Stack
 
             current_scale = manager.get_scale
             if current_scale==0
-                @scale = (node_config.has_key?("scale") ? node_config["scale"] : 1)
+                @scale = node_config["scale"] || 1
             else
                 @scale = current_scale
             end
+            @max_scale = node_config["max_scale"] || @scale
 
             raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if @scale < 1
             @prev_scale = @scale

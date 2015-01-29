@@ -104,7 +104,13 @@ module StackBuilder::Stack
                 raise StackBuilder::Common::StackBuilderError, "Invalid node name \"#{name}'\"." if node.nil?
 
                 unless scale.nil?
-                    raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if scale < 1
+                    raise ArgumentError, \
+                        "The scale for node \"#{@name}\" must be greater than 0." \
+                        if scale < 1
+                    raise ArgumentError, \
+                        "The scale for node \"#{@name}\" cannot be greater than #{node.max_scale}." \
+                        if scale > node.max_scale
+                    
                     node.scale = scale
                 end
             end
