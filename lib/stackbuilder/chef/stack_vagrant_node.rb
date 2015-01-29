@@ -6,6 +6,7 @@ module StackBuilder::Chef
 
     class VagrantNodeManager < StackBuilder::Chef::NodeManager
 
+        VAGRANT_PROVIDER = 'virtualbox'
         VAGRANT_DIR = File.join(Dir.home, '/.vagrant')
         INSECURE_KEY_PATH = "#{VAGRANT_DIR}/insecure_key"
 
@@ -24,7 +25,7 @@ module StackBuilder::Chef
 
             if ssh_identity_file.nil?
 
-                provider = @knife_config['options']['provider']
+                provider = @knife_config['options']['provider'] || VAGRANT_PROVIDER
                 vagrant_dir = @knife_config['options']['vagrant_dir'] || VAGRANT_DIR
 
                 ssh_identity_file = ( vagrant_version<'1.7' ? INSECURE_KEY_PATH : 
@@ -49,7 +50,7 @@ module StackBuilder::Chef
             knife_cmd.config[:template_file] = false
 
             knife_cmd.config[:vagrant_dir] = VAGRANT_DIR
-            knife_cmd.config[:provider] = 'virtualbox'
+            knife_cmd.config[:provider] = VAGRANT_PROVIDER
             knife_cmd.config[:memsize] = 1024
             knife_cmd.config[:subnet] = '192.168.67.0/24'
             knife_cmd.config[:port_forward] = { }
