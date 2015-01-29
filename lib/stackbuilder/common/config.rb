@@ -4,7 +4,7 @@ module StackBuilder::Common
     
     class Config
 
-        QUERY_TIMEOUT = 60
+        QUERY_TIMEOUT = 300
         CACHE_TIMEOUT = 60
 
         class << self
