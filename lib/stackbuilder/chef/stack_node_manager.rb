@@ -231,11 +231,12 @@ module StackBuilder::Chef
             escaped_query = URI.escape(search_query, Regexp.new("[^#{URI::PATTERN::UNRESERVED}]"))
 
             if timeout>0
-                @logger.info("Waiting '#{search_query}' to return results.")
+                @logger.info("#{@name} - Waiting '#{search_query}' to return results.")
                 results = Timeout::timeout(timeout) {
 
                     while true do
                         results = query.search('node', escaped_query, nil, 0, 999999)
+                        sleep 5
                         return results if results[0].size>0
                     end
                 }
@@ -264,17 +265,8 @@ module StackBuilder::Chef
 
             self.config_knife(name, knife_cmd, knife_config)
 
-            if @logger.info? || @logger.debug?
-
-                output = StackBuilder::Common::TeeIO.new($stdout)
-                error = StackBuilder::Common::TeeIO.new($stderr)
-
-                @logger.info("Running '#{cmd}' on node 'name:#{name}'.")
-                run_knife(knife_cmd, output, error)
-            else
-                run_knife(knife_cmd)
-            end
+            @logger.info("#{@name} - Running '#{cmd}' on node 'name:#{name}'.")
+            run_knife(knife_cmd)
         end
-
     end
 end
