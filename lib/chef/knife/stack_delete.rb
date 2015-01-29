@@ -13,8 +13,7 @@ class Chef
 
             option :stack_id,
                :long => "--stack-id STACK_ID",
-               :description => "The ID of the stack to delete.",
-               :required => true
+               :description => "The ID of the stack to delete."
 
             option :repo_path,
                :long => "--repo_path REPO_PATH",
@@ -25,7 +24,7 @@ class Chef
             def run
                 StackBuilder::Common::Config.logger.level = Chef::Log.logger.level
 
-                environment = getConfig(:environment) || '_default'
+                environment = getConfig(:environment) || '_default'                
                 stack_file = name_args.first
 
                 if stack_file=~/[-_+=.0-9a-zA-Z]+/
@@ -40,7 +39,7 @@ class Chef
                 stack = StackBuilder::Stack::Stack.new(
                     StackBuilder::Chef::NodeProvider.new(getConfig(:repo_path), environment),
                     stack_file,
-                    getConfig(:stack_id) )
+                    getConfig(:stack_id) || ENV['STACK_ID'] || environment )
 
                 stack.destroy
             end

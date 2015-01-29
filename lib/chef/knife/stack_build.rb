@@ -56,7 +56,7 @@ class Chef
                 repo_path = getConfig(:repo_path)
                 environment = getConfig(:environment) || '_default'
 
-                stack_id = getConfig(:stack_id) || ENV['STACK_ID']
+                stack_id = getConfig(:stack_id) || ENV['STACK_ID'] || environment
                 stack_overrides = getConfig(:overrides) || ENV['STACK_OVERRIDES']
 
                 stack_file = name_args.first
