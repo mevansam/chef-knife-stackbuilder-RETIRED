@@ -11,9 +11,10 @@ module StackBuilder::Chef
             super(id, node_config, repo_path, environment)
 
             @static_ips = static_ips
-
-            get_stack_node_resources
-            @nodes.each { |n| @static_ips.delete_if { |ip| ip.split('/').first==n["ipaddress"] } }
+            unless @static_ips.nil?
+                get_stack_node_resources
+                @nodes.each { |n| @static_ips.delete_if { |ip| ip.split('/').first==n["ipaddress"] } }
+            end
         end
 
         def create_vm(index, name, knife_config)
