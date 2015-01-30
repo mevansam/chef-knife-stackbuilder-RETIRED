@@ -105,10 +105,10 @@ module StackBuilder::Stack
 
                 unless scale.nil?
                     raise ArgumentError, \
-                        "The scale for node \"#{@name}\" must be greater than 0." \
+                        "The scale for node \"#{node.name}\" must be greater than 0." \
                         if scale < 1
                     raise ArgumentError, \
-                        "The scale for node \"#{@name}\" cannot be greater than #{node.max_scale}." \
+                        "The scale for node \"#{node.name}\" cannot be greater than #{node.max_scale}." \
                         if scale > node.max_scale
                     
                     node.scale = scale
