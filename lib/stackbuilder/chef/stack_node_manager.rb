@@ -210,6 +210,11 @@ module StackBuilder::Chef
                 end
             end
 
+            unless @env_key_file.nil?
+                env_key = IO.read(@env_key_file)
+                knife_cmd.config[:secret] = env_key
+            end
+
             ssh_user, ssh_password, ssh_identity_file = self.get_ssh_credentials(name)
             knife_cmd.config[:ssh_user] = ssh_user
             knife_cmd.config[:ssh_password] = ssh_password unless ssh_password.nil?
