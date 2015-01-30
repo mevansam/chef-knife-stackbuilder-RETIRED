@@ -61,7 +61,8 @@ describe StackBuilder::Chef do
 
             container_node['container_port_map'].each_value { |v| container_port_map.merge!(v) }
 
-            ssh = ssh_create(container_node['ipaddress'], 'vagrant', Dir.home + '/.vagrant/insecure_key')
+            ssh = ssh_create(container_node['ipaddress'], 'vagrant', 'vagrant')
+
             container_port_map.each_key do |id|
 
                 Timeout::timeout(300) do
@@ -135,9 +136,9 @@ describe StackBuilder::Chef do
 
             knife_cmd.config[:attribute] = 'ipaddress'
             knife_cmd.config[:ssh_user] = 'vagrant'
-            knife_cmd.config[:identity_file] = Dir.home + '/.vagrant/insecure_key'
-            ips = run_knife(knife_cmd).lines.map.collect { |line| line[/\d+\.\d+\.\d+\.\d+ (\d+\.\d+\.\d+\.\d+)/, 1] }
+            knife_cmd.config[:ssh_password] = 'vagrant'
 
+            ips = run_knife(knife_cmd).lines.map.collect { |line| line[/\d+\.\d+\.\d+\.\d+ (\d+\.\d+\.\d+\.\d+)/, 1] }
             expect(wordpress_ips.sort).to eq(ips.sort)
         end
     end
@@ -149,11 +150,11 @@ describe StackBuilder::Chef do
         knife_cmd.config[:certs] = 'wpweb.stackbuilder.org,wpdb.stackbuilder.org'
         knife_cmd.config[:stack_environments] = 'DEV,TEST,PROD'
         knife_cmd.config[:cookbooks] =
-                'haproxy:=1.6.6,' +
-                'mysql:=5.6.1,' +
-                'mysql-chef_gem:=0.0.5,' +
-                'apache2:=2.0.0,' +
-                'wordpress:=2.3.0'
+            'haproxy:=1.6.6,' +
+            'mysql:=5.6.1,' +
+            'mysql-chef_gem:=0.0.5,' +
+            'apache2:=2.0.0,' +
+            'wordpress:=2.3.0'
 
         knife_cmd.run
 
@@ -232,16 +233,18 @@ describe StackBuilder::Chef do
 
             knife_cmd = Chef::Knife::Ssh.new
             knife_cmd.name_args = [ 'name:test-TEST-0', "sudo su -c '[ -e ~/stack_configured ] && echo yes'" ]
-            knife_cmd.config[:attribute] = 'ipaddress'
+            knife_cmd.config[:attribute] = 'ssh_ip'
             knife_cmd.config[:ssh_user] = 'vagrant'
+            knife_cmd.config[:ssh_password] = 'vagrant'
             knife_cmd.config[:identity_file] = Dir.home + '/.vagrant/insecure_key'
             result = run_knife(knife_cmd).chomp
             expect(result[/\d+\.\d+\.\d+\.\d+ (\w+)/, 1]).to eq('yes')
 
             knife_cmd = Chef::Knife::Ssh.new
             knife_cmd.name_args = [ 'name:test-TEST-0', "sudo su -c 'cat /etc/chef/encrypted_data_bag_secret'" ]
-            knife_cmd.config[:attribute] = 'ipaddress'
+            knife_cmd.config[:attribute] = 'ssh_ip'
             knife_cmd.config[:ssh_user] = 'vagrant'
+            knife_cmd.config[:ssh_password] = 'vagrant'
             knife_cmd.config[:identity_file] = Dir.home + '/.vagrant/insecure_key'
             result = run_knife(knife_cmd).chomp
 

@@ -67,9 +67,11 @@ stack:
   - C
 
 - node: E
+  max_scale: 3
   type: dynamic
 
 - node: F
+  max_scale: 2
   type: dynamic
 
 - node: G

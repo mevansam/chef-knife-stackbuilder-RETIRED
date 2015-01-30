@@ -9,9 +9,10 @@ stack:
 - node: test
   knife:
     options:
-      identity_file: ~/.vagrant/insecure_key
+      ip_attribute: ssh_ip
       host_key_verify: false
       ssh_user: vagrant
+      ssh_password: vagrant
       ssh_port: 22
       sudo: true
     create:
@@ -28,9 +29,8 @@ stack:
         share_folders: []
         use_cachier: false
         distro: chef-full
+        json_attributes: {"ssh_ip": "192.168.50.2"}
         vagrant_config: >
-          config.ohai.enable = true::
-          config.ohai.primary_nic = "eth1"::
           config.vm.provision "shell", inline: "mkdir -p /etc/chef"::
           config.vm.provision "shell", inline: "apt-get update"
         run_list:
