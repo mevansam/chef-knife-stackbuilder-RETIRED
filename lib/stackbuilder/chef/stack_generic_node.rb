@@ -48,6 +48,9 @@ module StackBuilder::Chef
                 knife_cmd.config[pool_key.to_sym] = placement_pools[index % placement_pools.size]
             end
 
+            self.config_knife(name, knife_cmd, knife_config['create']['options'] || { })
+            self.config_knife(name, knife_cmd, knife_config['options'] || { })
+
             if create_options.has_key?('static_ip_key') && !@static_ips.nil?
 
                 static_ip = @static_ips.shift
@@ -56,16 +59,10 @@ module StackBuilder::Chef
 
                 static_ip_key = create_options['static_ip_key']
                 ip_data = knife_config['create']['options'][static_ip_key]
-                unless ip_data.nil?
-                    knife_config['create']['options'].delete(static_ip_key)
-                    static_ip += "#{ip_data}" 
-                end
+                static_ip += "#{ip_data}" unless ip_data.nil?
                 
                 knife_cmd.config[static_ip_key.to_sym] = static_ip
             end
-
-            self.config_knife(name, knife_cmd, knife_config['create']['options'] || { })
-            self.config_knife(name, knife_cmd, knife_config['options'] || { })
 
             @logger.info("Executing knife to create VM: #{knife_cmd} / #{knife_cmd.name_args} / #{knife_cmd.config}")
 
