@@ -205,6 +205,8 @@ module StackBuilder::Common
 
             StackBuilder::Common::Config.logger.debug( "Error evaluating configuration " +
                 "variable '#{v}': #{msg}\nenv = #{env}\nmy = #{my}")
+
+            v
         end
 
         # 
