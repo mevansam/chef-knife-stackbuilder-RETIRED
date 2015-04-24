@@ -270,7 +270,7 @@ module StackBuilder::Stack
             # If new VMs have been added to the cluster to scale up then add default events for the new VM.
             orchestrate_events = orchestrate_events.merge([ "create", "install", "configure" ]) if i >= prev_scale
 
-            @logger.debug("Events for node '#{name}' instance #{i} build: " +
+            @logger.info("Events for node '#{name}' instance #{i} build: " +
                 "#{orchestrate_events.collect { |e| e } .join(", ")}") if @logger.debug?
 
             if @sync==SYNC_ALL || (i==0 && @sync==SYNC_FIRST)

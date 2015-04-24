@@ -123,7 +123,7 @@ module StackBuilder::Chef
             end
 
             self.config_knife(name, knife_cmd, knife_config['delete']['options'] || { })
-            self.config_knife(name, knife_cmd, knife_config['options'] || { })
+            # self.config_knife(name, knife_cmd, knife_config['options'] || { })
 
             knife_cmd.config[:yes] = true
 
