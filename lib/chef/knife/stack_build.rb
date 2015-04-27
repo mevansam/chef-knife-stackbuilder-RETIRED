@@ -110,7 +110,7 @@ class Chef
             ensure
                 time_elapsed = Time.now - time_start
 
-                $stdout.printf( "\nStack '%s' build using the '%s' template took %d minutes and '%.3f' seconds\n",
+                $stdout.printf( "\nStack '%s' build using the '%s' template took %d minutes and %.3f seconds\n",
                     stack_id, stack_file, time_elapsed/60, time_elapsed%60 ) if !getConfig(:show_stack_file)
             end
         end
