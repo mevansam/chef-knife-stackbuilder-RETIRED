@@ -246,6 +246,7 @@ module StackBuilder::Chef
                     end
                 }
             else
+                @logger.info("#{@name} - Searching for nodes '#{search_query}'.")
                 results = query.search('node', escaped_query, nil, 0, 999999)
             end
 

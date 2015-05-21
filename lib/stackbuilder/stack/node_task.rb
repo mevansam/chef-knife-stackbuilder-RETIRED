@@ -53,10 +53,11 @@ module StackBuilder::Stack
             current_scale = manager.get_scale
             if current_scale==0
                 @scale = node_config["scale"] || 1
+                @max_scale = node_config["max_scale"] || @scale
             else
                 @scale = current_scale
+                @max_scale = node_config["max_scale"] || node_config["scale"] || 1
             end
-            @max_scale = node_config["max_scale"] || @scale
 
             raise ArgumentError, "The scale for node \"#{@name}\" must be greater than 0." if @scale < 1
             @prev_scale = @scale
@@ -322,6 +323,7 @@ module StackBuilder::Stack
                     l = lookup_keys.shift
                     node = @nodes[l]
                     unless node.nil?
+                        @logger.debug("Found node #{l} with scale #{node.scale}")
 
                         node_attributes = node.manager.node_attributes
                         unless node_attributes.nil? || node_attributes.empty?
