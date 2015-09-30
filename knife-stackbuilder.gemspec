@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
     s.description  = s.summary
     s.author       = "Mevan Samaratunga"
     s.email        = "mevansam@gmail.com"
-    s.homepage     = "https://github.com/mevansam/knife-stackbuilder/wiki"
+    s.homepage     = "https://github.com/mevansam/chef-knife-stackbuilder"
 
     #s.files        = `git ls-files -- bin/* lib/*`.split("\n") + %w(README.md Rakefile)
     #s.test_files   = `git ls-files -- spec/*`.split("\n")
